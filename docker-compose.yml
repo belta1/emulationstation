@@ -1,0 +1,52 @@
+# Uso:
+#   docker compose up -d --build              -> modo navegador (noVNC) en http://localhost:6080/vnc.html
+#   docker compose --profile x11 up --build es-x11   -> ventana nativa en el X11 del host (Linux)
+services:
+  emulationstation:
+    build: .
+    image: emulationstation:latest
+    container_name: emulationstation
+    environment:
+      DISPLAY_MODE: vnc
+      SCREEN_RESOLUTION: ${SCREEN_RESOLUTION:-1280x720x24}
+      VNC_PASSWORD: ${VNC_PASSWORD:-}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    ports:
+      - "${NOVNC_PORT:-6080}:6080"   # noVNC (navegador)
+      - "${VNC_PORT:-5900}:5900"     # VNC nativo (opcional)
+    volumes:
+      - ./roms:/roms
+      - es-config:/home/es/.emulationstation
+      - retroarch-config:/home/es/.config/retroarch
+    shm_size: "512m"
+    restart: unless-stopped
+
+  es-x11:
+    profiles: ["x11"]
+    image: emulationstation:latest
+    build: .
+    container_name: emulationstation-x11
+    environment:
+      DISPLAY_MODE: x11
+      DISPLAY: ${DISPLAY:-:0}
+      PULSE_SERVER: unix:/run/user/host/pulse/native
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/pulse:/run/user/host/pulse:ro
+      - ./roms:/roms
+      - es-config:/home/es/.emulationstation
+      - retroarch-config:/home/es/.config/retroarch
+    devices:
+      - /dev/dri:/dev/dri       # aceleración GPU (Intel/AMD)
+      - /dev/input:/dev/input   # mandos / joysticks
+    group_add:
+      - video
+      - input
+    shm_size: "512m"
+
+volumes:
+  es-config:
+  retroarch-config:
