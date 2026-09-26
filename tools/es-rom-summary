@@ -40,7 +40,11 @@ else
 fi
 
 if [[ "${1:-}" != "--gamelist" ]]; then
-    [[ "${total}" -eq 0 ]] && status="No se encontró ningún juego. Copia tus ROMs en la carpeta roms/ del host, dentro de la subcarpeta de su sistema (p. ej. roms/snes/juego.sfc), y recarga desde Herramientas > Recargar lista de juegos."
+    if [[ "${total}" -eq 0 ]]; then
+        status="No se encontró ningún juego. Copia tus ROMs en la carpeta roms/ del host, dentro de la subcarpeta de su sistema (p. ej. roms/snes/juego.sfc), y recarga desde Herramientas > Recargar lista de juegos."
+    else
+        status="Total: ${total} juego(s). Para detectar juegos nuevos: Herramientas > Recargar lista de juegos."
+    fi
     printf '%s\n\n%s\n' "${table}" "${status}"
     exit 0
 fi
