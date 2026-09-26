@@ -14,6 +14,7 @@ emulationstation/
 │   ├── es_input.cfg     # mapeos por defecto: teclado y mandos Xbox 360
 │   ├── retroarch.cfg    # configuración base de RetroArch (2 jugadores)
 │   └── retroarch-autoconfig/  # perfiles de RetroArch para Xbox 360 (cableado e inalámbrico)
+├── tools/               # sistema "Herramientas" y resumen de ROMs (es-rom-summary)
 └── roms/                # tus ROMs (montado en /roms)
 ```
 
@@ -46,7 +47,9 @@ docker compose up -d --build
 
 Abre <http://localhost:6080/vnc.html> y pulsa **Connect**. También puedes conectar un cliente VNC a `localhost:5900`.
 
-> EmulationStation solo muestra los sistemas que tienen al menos un juego. Si `roms/` está vacío, verás un aviso de que no hay sistemas: añade ROMs y reinicia con `docker compose restart`.
+EmulationStation solo muestra los sistemas que tienen al menos un juego. Si todavía no hay ROMs, verás únicamente el sistema **Herramientas**. En él, la opción **Recargar lista de juegos** muestra en su descripción cada carpeta de `roms/`, las extensiones que acepta y cuántos juegos se detectaron. Después de copiar juegos nuevos, elígela: EmulationStation vuelve a buscar ROMs sin reiniciar el contenedor.
+
+El mismo resumen aparece en los logs al arrancar (`docker compose logs emulationstation`). Si un sistema marca 0 juegos, revisa que la ROM esté en su subcarpeta (por ejemplo `roms/snes/`, no directamente en `roms/`) y que tenga una de las extensiones de la lista.
 
 Variables opcionales (en un archivo `.env` o en la línea de comandos):
 
@@ -105,9 +108,11 @@ Si tienes otro mando (o un clon de Xbox 360 que no se reconozca), EmulationStati
 
 ## Personalización
 
-La primera vez que arranca, el contenedor copia `config/*` a los volúmenes `es-config` y `retroarch-config`. A partir de entonces se usan las copias de los volúmenes, así que los cambios hechos desde los menús se conservan.
+La primera vez que arranca, el contenedor copia `es_input.cfg` y `retroarch.cfg` a los volúmenes `es-config` y `retroarch-config`. A partir de entonces se usan las copias de los volúmenes, así que los cambios hechos desde los menús se conservan.
 
-- **Añadir un sistema:** agrega un bloque `<system>` a `es_systems.cfg` y, si hace falta, el paquete `libretro-*` correspondiente en el `Dockerfile`. Para aplicar el nuevo archivo a una instalación existente: `docker compose down -v` (borra la config guardada) o edítalo dentro del volumen.
+`es_systems.cfg` no se copia: se usa el de la imagen (`/etc/emulationstation/es_systems.cfg`), así que los sistemas nuevos llegan al reconstruir la imagen. Si una versión anterior había dejado una copia sin modificar en el volumen, el contenedor la borra al arrancar.
+
+- **Añadir un sistema:** agrega un bloque `<system>` a `config/es_systems.cfg` y, si hace falta, el paquete `libretro-*` correspondiente en el `Dockerfile`, y reconstruye con `docker compose up -d --build`. Si prefieres no reconstruir, copia el archivo a `~/.emulationstation/es_systems.cfg` dentro del volumen `es-config`: EmulationStation usará esa copia en lugar de la de la imagen. Mantén en ella el sistema `herramientas`; sin él, EmulationStation vuelve a mostrar "We can't find any systems" cuando no hay ROMs.
 - **Otro tema:** clona cualquier tema de EmulationStation en `/etc/emulationstation/themes/` (argumento de build `THEME_REPO`) y elígelo en *UI Settings → Theme Set*.
 - **Otra versión de ES:** `docker compose build --build-arg ES_VERSION=v2.11.2`.
 

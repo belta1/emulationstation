@@ -20,16 +20,35 @@ fi
 
 # Configuración inicial (solo si no existe, para no pisar cambios del usuario)
 mkdir -p "${ES_HOME}/.emulationstation" "${ES_HOME}/.config/retroarch"
-[[ -f "${ES_HOME}/.emulationstation/es_systems.cfg" ]] \
-    || cp "${DEFAULTS}/es_systems.cfg" "${ES_HOME}/.emulationstation/es_systems.cfg"
+
+# es_systems.cfg vive en /etc (se actualiza con la imagen). Las versiones
+# anteriores lo copiaban al volumen; si esa copia no se modificó, se borra
+# para que se use la de /etc. Una copia personalizada se respeta.
+USER_SYSTEMS="${ES_HOME}/.emulationstation/es_systems.cfg"
+if [[ -f "${USER_SYSTEMS}" ]]; then
+    case "$(sha256sum "${USER_SYSTEMS}" | cut -d' ' -f1)" in
+        7b22e3545ee125bebeb923464be4bf2bccfabe0ef887d06987c6c9d7a05fec70|\
+        17edea11164c3bd8d4317c636a82d8e7f0add30c2688b67889f6bcd20e74665c)
+            rm -f "${USER_SYSTEMS}"
+            echo ">> es_systems.cfg antiguo sin cambios: se usará el de la imagen"
+            ;;
+        *)
+            echo ">> Usando es_systems.cfg personalizado: ${USER_SYSTEMS}"
+            grep -q '/opt/es-tools' "${USER_SYSTEMS}" || echo ">> AVISO: no incluye el sistema \"herramientas\"; si no hay ROMs, EmulationStation no mostrará ningún sistema"
+            ;;
+    esac
+fi
+SYSTEMS_CFG="${USER_SYSTEMS}"
+[[ -f "${SYSTEMS_CFG}" ]] || SYSTEMS_CFG=/etc/emulationstation/es_systems.cfg
+
 [[ -f "${ES_HOME}/.emulationstation/es_input.cfg" ]] \
     || cp "${DEFAULTS}/es_input.cfg" "${ES_HOME}/.emulationstation/es_input.cfg"
 [[ -f "${ES_HOME}/.config/retroarch/retroarch.cfg" ]] \
     || cp "${DEFAULTS}/retroarch.cfg" "${ES_HOME}/.config/retroarch/retroarch.cfg"
 
 # Crea una carpeta por sistema definido en es_systems.cfg
-grep -oP '(?<=<path>)[^<]+' "${ES_HOME}/.emulationstation/es_systems.cfg" \
-    | while read -r dir; do mkdir -p "${dir}"; done
+grep -oP '(?<=<path>)[^<]+' "${SYSTEMS_CFG}" \
+    | while read -r dir; do if [[ "${dir}" == /roms/* ]]; then mkdir -p "${dir}"; fi; done
 
 # Mandos y GPU: añade el usuario a los grupos dueños de /dev/input y /dev/dri
 # (sus GID vienen del host y no existen dentro de la imagen).
@@ -47,6 +66,10 @@ done
 
 chown -R "${ES_USER}:${ES_USER}" "${ES_HOME}"
 chown "${ES_USER}:${ES_USER}" /roms /roms/* 2>/dev/null || true
+
+# Resumen de ROMs en los logs (docker compose logs)
+echo ">> ROMs detectadas:"
+gosu "${ES_USER}" env HOME="${ES_HOME}" es-rom-summary | sed 's/^/   /'
 
 case "${DISPLAY_MODE:-vnc}" in
     vnc)
@@ -86,7 +109,12 @@ if [[ "${1:-}" == "emulationstation" ]]; then
     fi
     # Reinicia EmulationStation si se cierra (p. ej. "Quit" desde el menú),
     # salvo que se haya pedido detener el contenedor.
+    TOOLS_GAMELIST="${ES_HOME}/.emulationstation/gamelists/herramientas/gamelist.xml"
     while true; do
+        # Regenera la ayuda de Herramientas con el recuento de ROMs actual
+        gosu "${ES_USER}" mkdir -p "$(dirname "${TOOLS_GAMELIST}")"
+        gosu "${ES_USER}" env HOME="${ES_HOME}" es-rom-summary --gamelist > "${TOOLS_GAMELIST}"
+        chown "${ES_USER}:${ES_USER}" "${TOOLS_GAMELIST}"
         gosu "${ES_USER}" env HOME="${ES_HOME}" emulationstation "${ES_ARGS[@]}" "$@" || true
         [[ "${ES_RESTART:-true}" == "true" ]] || break
         sleep 1

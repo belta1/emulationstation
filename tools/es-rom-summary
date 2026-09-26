@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Resumen de ROMs por sistema de es_systems.cfg: carpeta, extensiones y número
+# de juegos. Formatos:
+#   es-rom-summary            tabla para los logs (docker compose logs)
+#   es-rom-summary --gamelist gamelist.xml del sistema "herramientas", cuya
+#                             descripción muestra este resumen dentro de ES
+set -uo pipefail
+
+cfg="${HOME:-/home/es}/.emulationstation/es_systems.cfg"
+[[ -f "${cfg}" ]] || cfg=/etc/emulationstation/es_systems.cfg
+
+total=0
+table="$(printf '%-14s %-6s %s\n' "SISTEMA" "JUEGOS" "CARPETA (extensiones)")"
+lines=""
+while IFS=$'\t' read -r name path exts; do
+    [[ "${path}" == /roms/* ]] || continue
+    count=0
+    if [[ -d "${path}" ]]; then
+        for ext in ${exts}; do
+            n=$(find "${path}" -maxdepth 2 -type f -name "*${ext}" 2>/dev/null | wc -l)
+            count=$((count + n))
+        done
+    fi
+    total=$((total + count))
+    # /roms/<sistema> es la carpeta roms/<sistema> del host
+    table+=$'\n'"$(printf '%-14s %-6s %s (%s)' "${name}" "${count}" "${path#/}" "${exts}")"
+    lines+="${path#/}: ${count} juego(s)  [${exts}]"$'\n'
+done < <(awk '
+    /<system>/    { name = ""; path = ""; ext = "" }
+    /<name>/      { gsub(/.*<name>|<\/name>.*/, "");           name = $0 }
+    /<path>/      { gsub(/.*<path>|<\/path>.*/, "");           path = $0 }
+    /<extension>/ { gsub(/.*<extension>|<\/extension>.*/, ""); ext  = $0 }
+    /<\/system>/  { print name "\t" path "\t" ext }
+' "${cfg}")
+
+if [[ "${total}" -eq 0 ]]; then
+    status="No se encontró ningún juego. Copia tus ROMs en la carpeta roms/ del host, dentro de la subcarpeta de su sistema (p. ej. roms/snes/juego.sfc), y después elige esta opción para recargar la lista."
+else
+    status="Total: ${total} juego(s). Si copiaste juegos nuevos, elige esta opción para recargar la lista."
+fi
+
+if [[ "${1:-}" != "--gamelist" ]]; then
+    [[ "${total}" -eq 0 ]] && status="No se encontró ningún juego. Copia tus ROMs en la carpeta roms/ del host, dentro de la subcarpeta de su sistema (p. ej. roms/snes/juego.sfc), y recarga desde Herramientas > Recargar lista de juegos."
+    printf '%s\n\n%s\n' "${table}" "${status}"
+    exit 0
+fi
+
+xml_escape() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+desc="$(printf '%s\n\n%s' "${status}" "${lines}" | xml_escape)"
+cat <<XML
+<?xml version="1.0"?>
+<!-- Generado por es-rom-summary en cada arranque de EmulationStation. -->
+<gameList>
+  <game>
+    <path>./Recargar lista de juegos.sh</path>
+    <name>Recargar lista de juegos</name>
+    <desc>${desc}</desc>
+    <image>/etc/emulationstation/themes/carbon/retropie/art/controller.svg</image>
+  </game>
+</gameList>
+XML

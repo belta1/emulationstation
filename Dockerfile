@@ -78,7 +78,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         # Escritorio virtual para el modo navegador
         xvfb x11vnc novnc websockify \
         # Audio y utilidades
-        pulseaudio-utils alsa-utils ca-certificates tini gosu unzip \
+        pulseaudio-utils alsa-utils ca-certificates tini gosu unzip procps \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /src/EmulationStation/emulationstation /usr/local/bin/emulationstation
@@ -97,10 +97,13 @@ RUN useradd -m -d "${ES_HOME}" -s /bin/bash -G audio,video "${ES_USER}" \
     && mkdir -p /roms /etc/emulationstation/defaults \
     && chown -R "${ES_USER}:${ES_USER}" /roms
 
-COPY config/es_systems.cfg config/es_input.cfg config/retroarch.cfg /etc/emulationstation/defaults/
+COPY config/es_systems.cfg /etc/emulationstation/es_systems.cfg
+COPY config/es_input.cfg config/retroarch.cfg /etc/emulationstation/defaults/
+COPY tools/es-rom-summary /usr/local/bin/es-rom-summary
+COPY ["tools/Recargar lista de juegos.sh", "/opt/es-tools/"]
 COPY config/retroarch-autoconfig/ /etc/retroarch/autoconfig/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/es-rom-summary /opt/es-tools/*.sh
 
 VOLUME ["/roms", "/home/es/.emulationstation", "/home/es/.config/retroarch"]
 EXPOSE 5900 6080
