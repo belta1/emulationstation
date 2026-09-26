@@ -68,6 +68,15 @@ powershell -ExecutionPolicy Bypass -File scripts\crear-carpetas-roms.ps1   # Win
 
 Para usar otra carpeta, crea un archivo `.env` junto a `docker-compose.yml` con `ROMS_DIR=/ruta/a/tus/roms` (en Windows, `ROMS_DIR=D:/Juegos/roms`). Los scripts aceptan la ruta como argumento (`-Destino` en PowerShell).
 
+## Desplegar con Portainer (stack desde repositorio Git)
+
+1. **Stacks → Add stack → Repository**. URL del repositorio, referencia `refs/heads/main`, *Compose path* `docker-compose.yml` y, si el repositorio es privado, activa *Authentication* con tus credenciales de GitHub.
+2. En **Environment variables** añade `ROMS_DIR` con la **ruta absoluta** de la carpeta de ROMs en el servidor, por ejemplo `/home/tu_usuario/docker_compose/config/emulationstation`. Con Portainer no uses `~`: Compose se ejecuta dentro del contenedor de Portainer y `~` no apunta al home de tu usuario.
+3. **Deploy the stack**. La primera vez compila la imagen (tarda un rato, sobre todo FinalBurn Neo).
+4. Para actualizar: **Pull and redeploy**. `docker-compose.yml` tiene `pull_policy: build`, así que la imagen se reconstruye en cada despliegue con los últimos cambios (con caché, solo lo que cambió).
+
+Para comprobar que corre la versión actual, mira los logs del contenedor en Portainer: al arrancar deben mostrar `>> ROMs detectadas:` con la tabla de carpetas. Si no aparece, se está usando una imagen antigua: borra la imagen `emulationstation:latest` en **Images** y vuelve a desplegar.
+
 ## Uso rápido: en el navegador (cualquier sistema operativo)
 
 ```bash

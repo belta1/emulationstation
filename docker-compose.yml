@@ -9,6 +9,9 @@ services:
   emulationstation:
     build: .
     image: emulationstation:latest
+    # Reconstruye la imagen en cada "up" (con caché: solo lo que cambió). Sin
+    # esto, Portainer y "docker compose up" reutilizan una imagen vieja.
+    pull_policy: build
     container_name: emulationstation
     environment:
       DISPLAY_MODE: vnc
@@ -37,6 +40,7 @@ services:
     profiles: ["x11"]
     image: emulationstation:latest
     build: .
+    pull_policy: build
     container_name: emulationstation-x11
     environment:
       DISPLAY_MODE: x11
