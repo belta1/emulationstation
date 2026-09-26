@@ -5,7 +5,7 @@ Imagen Docker con **EmulationStation** (fork de RetroPie, compilado desde el có
 ## Estructura
 
 ```
-emulationstation-docker/
+emulationstation/
 ├── Dockerfile           # multi-etapa: compila ES → imagen de ejecución con RetroArch
 ├── docker-compose.yml   # servicios "emulationstation" (noVNC) y "es-x11" (X11 del host)
 ├── entrypoint.sh        # arranca Xvfb/VNC o usa X11, prepara la config y lanza ES
@@ -39,7 +39,7 @@ Las BIOS (por ejemplo, las de PlayStation) van en `roms/bios/`.
 ## Uso rápido: en el navegador (cualquier sistema operativo)
 
 ```bash
-cd emulationstation-docker
+git clone https://github.com/belta1/emulationstation.git && cd emulationstation
 # copia tus ROMs, p. ej.: roms/nes/juego.nes, roms/snes/juego.sfc
 docker compose up -d --build
 ```
