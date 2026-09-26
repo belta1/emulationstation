@@ -6,6 +6,11 @@
 #                             descripción muestra este resumen dentro de ES
 set -uo pipefail
 
+# Carpeta del host montada en /roms (la pasa docker-compose.yml); solo se usa
+# para mostrar rutas que el usuario reconozca.
+host_dir="${ROMS_HOST_DIR:-roms}"
+host_dir="${host_dir%/}"
+
 cfg="${HOME:-/home/es}/.emulationstation/es_systems.cfg"
 [[ -f "${cfg}" ]] || cfg=/etc/emulationstation/es_systems.cfg
 
@@ -22,9 +27,10 @@ while IFS=$'\t' read -r name path exts; do
         done
     fi
     total=$((total + count))
-    # /roms/<sistema> es la carpeta roms/<sistema> del host
-    table+=$'\n'"$(printf '%-14s %-6s %s (%s)' "${name}" "${count}" "${path#/}" "${exts}")"
-    lines+="${path#/}: ${count} juego(s)  [${exts}]"$'\n'
+    # /roms/<sistema> es <carpeta del host>/<sistema>
+    shown="${host_dir}/${path#/roms/}"
+    table+=$'\n'"$(printf '%-14s %-6s %s (%s)' "${name}" "${count}" "${shown}" "${exts}")"
+    lines+="${shown}: ${count} juego(s)  [${exts}]"$'\n'
 done < <(awk '
     /<system>/    { name = ""; path = ""; ext = "" }
     /<name>/      { gsub(/.*<name>|<\/name>.*/, "");           name = $0 }
@@ -34,14 +40,14 @@ done < <(awk '
 ' "${cfg}")
 
 if [[ "${total}" -eq 0 ]]; then
-    status="No se encontró ningún juego. Copia tus ROMs en la carpeta roms/ del host, dentro de la subcarpeta de su sistema (p. ej. roms/snes/juego.sfc), y después elige esta opción para recargar la lista."
+    status="No se encontró ningún juego. Copia tus ROMs en ${host_dir}, dentro de la subcarpeta de su sistema (p. ej. ${host_dir}/snes/juego.sfc), y después elige esta opción para recargar la lista."
 else
     status="Total: ${total} juego(s). Si copiaste juegos nuevos, elige esta opción para recargar la lista."
 fi
 
 if [[ "${1:-}" != "--gamelist" ]]; then
     if [[ "${total}" -eq 0 ]]; then
-        status="No se encontró ningún juego. Copia tus ROMs en la carpeta roms/ del host, dentro de la subcarpeta de su sistema (p. ej. roms/snes/juego.sfc), y recarga desde Herramientas > Recargar lista de juegos."
+        status="No se encontró ningún juego. Copia tus ROMs en ${host_dir}, dentro de la subcarpeta de su sistema (p. ej. ${host_dir}/snes/juego.sfc), y recarga desde Herramientas > Recargar lista de juegos."
     else
         status="Total: ${total} juego(s). Para detectar juegos nuevos: Herramientas > Recargar lista de juegos."
     fi

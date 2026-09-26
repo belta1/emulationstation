@@ -49,6 +49,7 @@ SYSTEMS_CFG="${USER_SYSTEMS}"
 # Crea una carpeta por sistema definido en es_systems.cfg
 grep -oP '(?<=<path>)[^<]+' "${SYSTEMS_CFG}" \
     | while read -r dir; do if [[ "${dir}" == /roms/* ]]; then mkdir -p "${dir}"; fi; done
+mkdir -p /roms/bios   # BIOS para RetroArch (system_directory)
 
 # Mandos y GPU: añade el usuario a los grupos dueños de /dev/input y /dev/dri
 # (sus GID vienen del host y no existen dentro de la imagen).

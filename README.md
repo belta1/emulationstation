@@ -15,12 +15,12 @@ emulationstation/
 │   ├── retroarch.cfg    # configuración base de RetroArch (2 jugadores)
 │   └── retroarch-autoconfig/  # perfiles de RetroArch para Xbox 360 (cableado e inalámbrico)
 ├── tools/               # sistema "Herramientas" y resumen de ROMs (es-rom-summary)
-└── roms/                # tus ROMs (montado en /roms)
+└── scripts/             # crean la carpeta de ROMs en el host (bash y PowerShell)
 ```
 
 ## Sistemas incluidos
 
-| Carpeta en `roms/` | Sistema              | Núcleo libretro   |
+| Subcarpeta         | Sistema              | Núcleo libretro   |
 |--------------------|----------------------|-------------------|
 | `nes`              | NES                  | FCEUmm            |
 | `snes`             | Super Nintendo       | Snes9x            |
@@ -33,23 +33,54 @@ emulationstation/
 | `pcengine`         | PC Engine            | Beetle PCE Fast   |
 | `arcade`           | Arcade (CPS1/2/3, Neo Geo, System 16, Toaplan, Konami…) | FinalBurn Neo |
 
-Las BIOS (por ejemplo, las de PlayStation) van en `roms/bios/`.
+Las BIOS (por ejemplo, las de PlayStation) van en la subcarpeta `bios/`.
 
-**Arcade:** las ROMs se dejan comprimidas tal cual (`roms/arcade/sf2.zip`, `roms/arcade/mslug.zip`…) y deben ser del romset de **FinalBurn Neo** (versión actual). Los juegos de Neo Geo necesitan además `neogeo.zip` en la misma carpeta `roms/arcade/`. Los juegos con ROMs "hijas" (clones) también necesitan el zip del juego "padre" en la misma carpeta.
+**Arcade:** las ROMs se dejan comprimidas tal cual (`arcade/sf2.zip`, `arcade/mslug.zip`…) y deben ser del romset de **FinalBurn Neo** (versión actual). Los juegos de Neo Geo necesitan además `neogeo.zip` en la misma carpeta `arcade/`. Los juegos con ROMs "hijas" (clones) también necesitan el zip del juego "padre" en la misma carpeta.
+
+## Carpeta de ROMs
+
+Las ROMs se guardan en el host, fuera del repositorio, en **`~/docker_compose/config/emulationstation`**, con una subcarpeta por sistema:
+
+```
+~/docker_compose/config/emulationstation/
+├── arcade/
+├── bios/
+├── gb/
+├── gba/
+├── gbc/
+├── mastersystem/
+├── megadrive/
+├── n64/
+├── nes/
+├── pcengine/
+├── psx/
+└── snes/
+```
+
+En Windows es `%USERPROFILE%\docker_compose\config\emulationstation` (por ejemplo `C:\Users\tu_usuario\docker_compose\config\emulationstation`).
+
+La carpeta y sus subcarpetas se crean solas la primera vez que arranca el contenedor. Si quieres crearlas antes para ir copiando juegos:
+
+```bash
+./scripts/crear-carpetas-roms.sh                                      # Linux / macOS
+powershell -ExecutionPolicy Bypass -File scripts\crear-carpetas-roms.ps1   # Windows
+```
+
+Para usar otra carpeta, crea un archivo `.env` junto a `docker-compose.yml` con `ROMS_DIR=/ruta/a/tus/roms` (en Windows, `ROMS_DIR=D:/Juegos/roms`). Los scripts aceptan la ruta como argumento (`-Destino` en PowerShell).
 
 ## Uso rápido: en el navegador (cualquier sistema operativo)
 
 ```bash
 git clone https://github.com/belta1/emulationstation.git && cd emulationstation
-# copia tus ROMs, p. ej.: roms/nes/juego.nes, roms/snes/juego.sfc
 docker compose up -d --build
+# copia tus ROMs, p. ej.: ~/docker_compose/config/emulationstation/nes/juego.nes, ~/docker_compose/config/emulationstation/snes/juego.sfc
 ```
 
 Abre <http://localhost:6080/vnc.html> y pulsa **Connect**. También puedes conectar un cliente VNC a `localhost:5900`.
 
-EmulationStation solo muestra los sistemas que tienen al menos un juego. Si todavía no hay ROMs, verás únicamente el sistema **Herramientas**. En él, la opción **Recargar lista de juegos** muestra en su descripción cada carpeta de `roms/`, las extensiones que acepta y cuántos juegos se detectaron. Después de copiar juegos nuevos, elígela: EmulationStation vuelve a buscar ROMs sin reiniciar el contenedor.
+EmulationStation solo muestra los sistemas que tienen al menos un juego. Si todavía no hay ROMs, verás únicamente el sistema **Herramientas**. En él, la opción **Recargar lista de juegos** muestra en su descripción cada subcarpeta de ROMs, las extensiones que acepta y cuántos juegos se detectaron. Después de copiar juegos nuevos, elígela: EmulationStation vuelve a buscar ROMs sin reiniciar el contenedor.
 
-El mismo resumen aparece en los logs al arrancar (`docker compose logs emulationstation`). Si un sistema marca 0 juegos, revisa que la ROM esté en su subcarpeta (por ejemplo `roms/snes/`, no directamente en `roms/`) y que tenga una de las extensiones de la lista.
+El mismo resumen aparece en los logs al arrancar (`docker compose logs emulationstation`). Si un sistema marca 0 juegos, revisa que la ROM esté en su subcarpeta (por ejemplo `~/docker_compose/config/emulationstation/snes/`, no directamente en `~/docker_compose/config/emulationstation/`) y que tenga una de las extensiones de la lista.
 
 Variables opcionales (en un archivo `.env` o en la línea de comandos):
 
@@ -59,6 +90,7 @@ Variables opcionales (en un archivo `.env` o en la línea de comandos):
 | `VNC_PASSWORD`      | *(vacío)*      | Contraseña VNC; sin ella el acceso es libre   |
 | `NOVNC_PORT`        | `6080`         | Puerto del host para noVNC                    |
 | `VNC_PORT`          | `5900`         | Puerto del host para VNC                      |
+| `ROMS_DIR`          | `~/docker_compose/config/emulationstation` | Carpeta del host con las ROMs |
 | `PUID` / `PGID`     | `1000`         | UID/GID con el que se escriben los volúmenes  |
 
 El modo navegador usa renderizado por software (Mesa llvmpipe): va bien para sistemas de 8/16 bits y GBA; N64 y PSX pueden ir lentos. Como Xvfb no tiene sincronía vertical, EmulationStation puede usar bastante CPU mientras está en pantalla.

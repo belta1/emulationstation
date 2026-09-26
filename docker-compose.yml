@@ -1,5 +1,9 @@
 # Uso:
 #   docker compose up -d --build              -> modo navegador (noVNC) en http://localhost:6080/vnc.html
+#
+# ROMs: se guardan en el host en ~/docker_compose/config/emulationstation, con
+# una subcarpeta por sistema (nes, snes, gba, arcade...) que el contenedor crea
+# al arrancar. Para usar otra carpeta: ROMS_DIR=/ruta/a/roms en un archivo .env.
 #   docker compose --profile x11 up --build es-x11   -> ventana nativa en el X11 del host (Linux)
 services:
   emulationstation:
@@ -8,6 +12,7 @@ services:
     container_name: emulationstation
     environment:
       DISPLAY_MODE: vnc
+      ROMS_HOST_DIR: ${ROMS_DIR:-~/docker_compose/config/emulationstation}
       SCREEN_RESOLUTION: ${SCREEN_RESOLUTION:-1280x720x24}
       VNC_PASSWORD: ${VNC_PASSWORD:-}
       PUID: ${PUID:-1000}
@@ -16,7 +21,7 @@ services:
       - "${NOVNC_PORT:-6080}:6080"   # noVNC (navegador)
       - "${VNC_PORT:-5900}:5900"     # VNC nativo (opcional)
     volumes:
-      - ./roms:/roms
+      - ${ROMS_DIR:-~/docker_compose/config/emulationstation}:/roms
       - es-config:/home/es/.emulationstation
       - retroarch-config:/home/es/.config/retroarch
       # Mandos USB conectados al host (solo hosts Linux): descomenta estas dos
@@ -35,6 +40,7 @@ services:
     container_name: emulationstation-x11
     environment:
       DISPLAY_MODE: x11
+      ROMS_HOST_DIR: ${ROMS_DIR:-~/docker_compose/config/emulationstation}
       DISPLAY: ${DISPLAY:-:0}
       PULSE_SERVER: unix:/run/user/host/pulse/native
       PUID: ${PUID:-1000}
@@ -42,7 +48,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${XDG_RUNTIME_DIR:-/run/user/1000}/pulse:/run/user/host/pulse:ro
-      - ./roms:/roms
+      - ${ROMS_DIR:-~/docker_compose/config/emulationstation}:/roms
       - es-config:/home/es/.emulationstation
       - retroarch-config:/home/es/.config/retroarch
       # Mandos (Xbox 360 u otros): el directorio completo + la base de datos de
