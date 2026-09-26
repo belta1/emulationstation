@@ -31,6 +31,20 @@ mkdir -p "${ES_HOME}/.emulationstation" "${ES_HOME}/.config/retroarch"
 grep -oP '(?<=<path>)[^<]+' "${ES_HOME}/.emulationstation/es_systems.cfg" \
     | while read -r dir; do mkdir -p "${dir}"; done
 
+# Mandos y GPU: añade el usuario a los grupos dueños de /dev/input y /dev/dri
+# (sus GID vienen del host y no existen dentro de la imagen).
+for dev in /dev/input/event* /dev/input/js* /dev/dri/*; do
+    [[ -e "${dev}" ]] || continue
+    gid="$(stat -c %g "${dev}")"
+    [[ "${gid}" == 0 ]] && continue
+    group="$(getent group "${gid}" | cut -d: -f1 || true)"
+    if [[ -z "${group}" ]]; then
+        group="host${gid}"
+        groupadd -g "${gid}" "${group}"
+    fi
+    id -nG "${ES_USER}" | grep -qw "${group}" || usermod -aG "${group}" "${ES_USER}"
+done
+
 chown -R "${ES_USER}:${ES_USER}" "${ES_HOME}"
 chown "${ES_USER}:${ES_USER}" /roms /roms/* 2>/dev/null || true
 

@@ -19,6 +19,12 @@ services:
       - ./roms:/roms
       - es-config:/home/es/.emulationstation
       - retroarch-config:/home/es/.config/retroarch
+      # Mandos USB conectados al host (solo hosts Linux): descomenta estas dos
+      # líneas y "device_cgroup_rules". noVNC no reenvía los mandos del navegador.
+      # - /dev/input:/dev/input:ro
+      # - /run/udev:/run/udev:ro
+    # device_cgroup_rules:
+    #   - "c 13:* rmw"   # dispositivos de entrada (joysticks, event*)
     shm_size: "512m"
     restart: unless-stopped
 
@@ -39,12 +45,16 @@ services:
       - ./roms:/roms
       - es-config:/home/es/.emulationstation
       - retroarch-config:/home/es/.config/retroarch
+      # Mandos (Xbox 360 u otros): el directorio completo + la base de datos de
+      # udev, para que SDL y RetroArch los detecten y se puedan conectar en caliente.
+      - /dev/input:/dev/input:ro
+      - /run/udev:/run/udev:ro
     devices:
       - /dev/dri:/dev/dri       # aceleración GPU (Intel/AMD)
-      - /dev/input:/dev/input   # mandos / joysticks
-    group_add:
-      - video
-      - input
+    device_cgroup_rules:
+      - "c 13:* rmw"            # dispositivos de entrada (joysticks, event*)
+    # Red del host: necesaria para recibir los eventos de udev al conectar/desconectar mandos
+    network_mode: host
     shm_size: "512m"
 
 volumes:

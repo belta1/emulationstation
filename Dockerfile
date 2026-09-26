@@ -34,10 +34,21 @@ WORKDIR /src/EmulationStation/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DGL=ON .. \
     && make -j"$(nproc)"
 
-# Ubuntu no empaqueta un núcleo de NES: se compila FCEUmm desde el código fuente
+# Núcleos que Ubuntu no empaqueta; se compilan desde el código fuente y se
+# dejan en /src/cores.
+RUN mkdir -p /src/cores
+
+# NES: FCEUmm
 ARG FCEUMM_REPO=https://github.com/libretro/libretro-fceumm.git
 RUN git clone --depth 1 "${FCEUMM_REPO}" /src/fceumm \
-    && make -C /src/fceumm -f Makefile.libretro -j"$(nproc)"
+    && make -C /src/fceumm -f Makefile.libretro -j"$(nproc)" \
+    && cp /src/fceumm/fceumm_libretro.so /src/cores/
+
+# Arcade (CPS1/2/3, Neo Geo, Sega System 16, Toaplan, Konami...): FinalBurn Neo
+ARG FBNEO_REPO=https://github.com/libretro/FBNeo.git
+RUN git clone --depth 1 "${FBNEO_REPO}" /src/fbneo \
+    && make -C /src/fbneo/src/burner/libretro -j"$(nproc)" \
+    && cp /src/fbneo/src/burner/libretro/fbneo_libretro.so /src/cores/
 
 ############################
 # Etapa 2: runtime
@@ -74,19 +85,20 @@ COPY --from=builder /src/EmulationStation/emulationstation /usr/local/bin/emulat
 COPY --from=builder /src/EmulationStation/resources /usr/local/share/emulationstation/resources
 
 COPY --from=builder /src/themes /etc/emulationstation/themes
-COPY --from=builder /src/fceumm/fceumm_libretro.so /tmp/fceumm_libretro.so
+COPY --from=builder /src/cores/ /tmp/cores/
 
 # EmulationStation busca "resources/" junto al binario.
 # /usr/lib/libretro apunta a la carpeta de núcleos de la arquitectura (amd64/arm64).
 RUN ln -s /usr/local/share/emulationstation/resources /usr/local/bin/resources \
     && ln -s "$(ls -d /usr/lib/*-linux-gnu/libretro)" /usr/lib/libretro \
-    && mv /tmp/fceumm_libretro.so /usr/lib/libretro/
+    && mv /tmp/cores/*.so /usr/lib/libretro/ && rmdir /tmp/cores
 
 RUN useradd -m -d "${ES_HOME}" -s /bin/bash -G audio,video "${ES_USER}" \
     && mkdir -p /roms /etc/emulationstation/defaults \
     && chown -R "${ES_USER}:${ES_USER}" /roms
 
-COPY config/ /etc/emulationstation/defaults/
+COPY config/es_systems.cfg config/es_input.cfg config/retroarch.cfg /etc/emulationstation/defaults/
+COPY config/retroarch-autoconfig/ /etc/retroarch/autoconfig/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

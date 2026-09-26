@@ -11,8 +11,9 @@ emulationstation-docker/
 ├── entrypoint.sh        # arranca Xvfb/VNC o usa X11, prepara la config y lanza ES
 ├── config/
 │   ├── es_systems.cfg   # sistemas y comando de lanzamiento de cada uno
-│   ├── es_input.cfg     # mapeo de teclado por defecto
-│   └── retroarch.cfg    # configuración base de RetroArch
+│   ├── es_input.cfg     # mapeos por defecto: teclado y mandos Xbox 360
+│   ├── retroarch.cfg    # configuración base de RetroArch (2 jugadores)
+│   └── retroarch-autoconfig/  # perfiles de RetroArch para Xbox 360 (cableado e inalámbrico)
 └── roms/                # tus ROMs (montado en /roms)
 ```
 
@@ -29,8 +30,11 @@ emulationstation-docker/
 | `n64`              | Nintendo 64          | Mupen64Plus       |
 | `psx`              | PlayStation          | Beetle PSX        |
 | `pcengine`         | PC Engine            | Beetle PCE Fast   |
+| `arcade`           | Arcade (CPS1/2/3, Neo Geo, System 16, Toaplan, Konami…) | FinalBurn Neo |
 
 Las BIOS (por ejemplo, las de PlayStation) van en `roms/bios/`.
+
+**Arcade:** las ROMs se dejan comprimidas tal cual (`roms/arcade/sf2.zip`, `roms/arcade/mslug.zip`…) y deben ser del romset de **FinalBurn Neo** (versión actual). Los juegos de Neo Geo necesitan además `neogeo.zip` en la misma carpeta `roms/arcade/`. Los juegos con ROMs "hijas" (clones) también necesitan el zip del juego "padre" en la misma carpeta.
 
 ## Uso rápido: en el navegador (cualquier sistema operativo)
 
@@ -63,7 +67,34 @@ xhost +local:docker                       # permite que el contenedor use tu pan
 docker compose --profile x11 up --build es-x11
 ```
 
-Monta `/tmp/.X11-unix`, `/dev/dri` (aceleración GPU Intel/AMD), `/dev/input` (mandos) y el socket de PulseAudio para el sonido. Para NVIDIA, usa el NVIDIA Container Toolkit y añade `gpus: all` al servicio.
+Monta `/tmp/.X11-unix`, `/dev/dri` (aceleración GPU Intel/AMD), `/dev/input` + `/run/udev` (mandos, con conexión en caliente) y el socket de PulseAudio para el sonido. Para NVIDIA, usa el NVIDIA Container Toolkit y añade `gpus: all` al servicio.
+
+## Mandos Xbox 360 (2 jugadores, sin configurar nada)
+
+Vienen preconfigurados los mandos **Xbox 360 cableados** y los **inalámbricos con receptor USB**, tanto en EmulationStation como en RetroArch. El primer mando conectado es el jugador 1 y el segundo, el jugador 2.
+
+| Mando Xbox 360      | EmulationStation         | En el juego (RetroArch)                  |
+|---------------------|--------------------------|------------------------------------------|
+| Cruceta / stick izq.| moverse                  | cruceta / stick                          |
+| A                   | aceptar                  | botón inferior (B de SNES)               |
+| B                   | volver                   | botón derecho (A de SNES)                |
+| X / Y               | —                        | botón izquierdo / superior               |
+| LB / RB             | saltar página            | L / R                                    |
+| LT / RT             | —                        | L2 / R2                                  |
+| Start / Back        | menú / Select            | Start / Select                           |
+| **Guide (logo de Xbox)** | —                        | **salir y volver a EmulationStation**    |
+| **L3 + R3**         | —                        | **menú de RetroArch** (guardar/cargar estado, opciones) |
+
+Requisitos:
+
+- **Host Linux.** El contenedor lee los mandos del host a través de `/dev/input`; el driver `xpad` del kernel (incluido en todas las distribuciones) los expone. En macOS/Windows Docker no puede acceder a los mandos USB.
+- **Modo X11** (`es-x11`): ya monta todo lo necesario.
+- **Modo navegador:** noVNC no reenvía los mandos del navegador. Si el host es Linux, descomenta las líneas de `/dev/input`, `/run/udev` y `device_cgroup_rules` del servicio `emulationstation` en `docker-compose.yml` y conecta los mandos al host.
+- Se pueden conectar y desconectar mandos en caliente. En el modo navegador, conéctalos antes de arrancar el contenedor.
+
+Si tienes otro mando (o un clon de Xbox 360 que no se reconozca), EmulationStation mostrará su asistente de configuración la primera vez: sigue las instrucciones en pantalla. En RetroArch se configura desde *Settings → Input* (`F1` o L3+R3).
+
+> Si ya habías arrancado una versión anterior de esta imagen, la configuración guardada en los volúmenes no incluye los mandos: ejecuta `docker compose down -v` para regenerarla.
 
 ## Controles por defecto (teclado)
 
@@ -71,7 +102,6 @@ Monta `/tmp/.X11-unix`, `/dev/dri` (aceleración GPU Intel/AMD), `/dev/input` (m
 
 **RetroArch (en juego):** flechas · `X`=A · `Z`=B · `S`=X · `A`=Y · `Q`/`W`=L/R · `Enter`=Start · `Shift der.`=Select · `F1` menú de RetroArch · `Esc` salir y volver a EmulationStation.
 
-Los mandos se pueden configurar desde el menú de EmulationStation (*Configure input*) y en RetroArch con `F1`.
 
 ## Personalización
 
