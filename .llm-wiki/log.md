@@ -40,3 +40,13 @@ volume config) and then `wmctrl -r RetroArch -b add,fullscreen`, because GNOME o
 RetroArch 1.7.3's own fullscreen window. `wmctrl` added to the runtime image. Verified live on
 jfubuntu (1920x1080, frames advancing). Documented that Xbox BT `02fd` fw 0903 View/Guide are
 invisible to RetroArch. Pages: architecture, recipes, modules/{image-build,input}.
+
+## [2026-09-27] update | Ubuntu 24.04 + RetroArch 1.18, stick-as-dpad, NES remap
+RetroArch 1.7.3 also froze whenever its menu opened (it forces vsync on there → GLX_OML hang under
+Xwayland); Mesa env/drirc overrides did not help and its Wayland backend needs wl_shell (gone from
+GNOME). Base image moved to Ubuntu 24.04 (RetroArch 1.18; libretro PPA no longer builds for 22.04).
+N64 now uses Mupen64Plus-Next built from source (24.04 has no libretro-mupen64plus). `ubuntu` user
+removed so `es` is UID 1000. `retroarch-forzado.cfg` now forces vsync on, left stick = d-pad
+(mode 1), Xbox A = menu OK, and `/etc/retroarch/remaps` (new `config/retroarch-remaps/`, NES
+X→B / A→A). 02fd profile regains Back 15 / Guide 16 (RetroArch 1.18 udev sees KEY_BACK/HOMEPAGE).
+Pages: index, architecture, modules/{image-build,input,systems}.

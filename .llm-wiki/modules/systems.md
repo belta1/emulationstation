@@ -17,7 +17,7 @@ Several scripts treat it as the source of truth.
 ## How it works
 
 - Current systems: `nes` (fceumm), `snes` (snes9x), `gb`/`gbc` (gambatte), `gba` (mgba),
-  `megadrive`/`mastersystem` (genesis_plus_gx), `n64` (mupen64plus), `psx` (pcsx_rearmed, built from source),
+  `megadrive`/`mastersystem` (genesis_plus_gx), `n64` (mupen64plus_next, built from source), `psx` (pcsx_rearmed, built from source),
   `pcengine` (mednafen_pce_fast), `arcade` (fbneo), plus `herramientas` (`/opt/es-tools`, `bash %ROM%`).
 - ES only lists systems that contain at least one matching file, so `herramientas` guarantees one always exists.
 - The ROM folder is created and counted automatically for any `<path>` under `/roms/`. See the table of

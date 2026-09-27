@@ -14,7 +14,7 @@ User-facing text (README, logs, UI strings, comments) is in **Spanish**.
 
 ## Stack
 
-- **Languages:** Dockerfile (multi-stage, Ubuntu 22.04), Bash, EmulationStation XML config,
+- **Languages:** Dockerfile (multi-stage, Ubuntu 24.04, RetroArch 1.18), Bash, EmulationStation XML config,
   RetroArch `.cfg`, one PowerShell script. No Node/Python, so there is no package manager or lockfile.
 - **Build:** `docker compose build` (or `docker compose up -d --build`)
 - **Run (Linux + X11):** `xhost +local:docker && docker compose up -d --build`

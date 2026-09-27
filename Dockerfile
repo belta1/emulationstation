@@ -4,7 +4,9 @@
 # Etapa 2: imagen de ejecución con RetroArch y núcleos libretro. Se muestra
 #          en el servidor X11 del host (con GPU), sin escritorio virtual.
 
-ARG UBUNTU_VERSION=22.04
+# 24.04: su RetroArch (1.18) funciona con GNOME en Wayland; el 1.7.3 de 22.04
+# se congelaba (vsync con GLX_OML_sync_control bajo Xwayland).
+ARG UBUNTU_VERSION=24.04
 
 ############################
 # Etapa 1: build
@@ -17,11 +19,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential cmake git ca-certificates pkg-config \
-        libsdl2-dev libfreeimage-dev libfreetype6-dev libcurl4-openssl-dev \
-        rapidjson-dev libasound2-dev libgl1-mesa-dev \
+        libsdl2-dev libfreeimage-dev libfreetype-dev libcurl4-openssl-dev \
+        rapidjson-dev libasound2-dev libgl-dev libglu1-mesa-dev \
         libboost-filesystem-dev libboost-system-dev libboost-locale-dev \
         libboost-date-time-dev \
         libvlc-dev libvlccore-dev \
+        # Mupen64Plus-Next (N64)
+        nasm zlib1g-dev libpng-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 --branch "${ES_VERSION}" --recurse-submodules \
@@ -61,6 +65,12 @@ RUN git clone --depth 1 --recurse-submodules "${PCSX_REPO}" /src/pcsx \
     && make -C /src/pcsx -f Makefile.libretro -j"$(nproc)" \
     && cp /src/pcsx/pcsx_rearmed_libretro.so /src/cores/
 
+# Nintendo 64: Mupen64Plus-Next (Ubuntu 24.04 ya no empaqueta libretro-mupen64plus)
+ARG MUPEN_REPO=https://github.com/libretro/mupen64plus-libretro-nx.git
+RUN git clone --depth 1 "${MUPEN_REPO}" /src/mupen \
+    && make -C /src/mupen -j"$(nproc)" \
+    && cp /src/mupen/mupen64plus_next_libretro.so /src/cores/
+
 # Sin símbolos de depuración: imagen más pequeña y carga más rápida
 RUN strip --strip-unneeded /src/cores/*.so
 
@@ -77,14 +87,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         # Librerías que necesita EmulationStation (libvlc se enlaza, pero sin
         # plugins de VLC: el tema carbon no reproduce vídeos)
-        libsdl2-2.0-0 libfreeimage3 libfreetype6 libcurl4 libasound2 \
+        libsdl2-2.0-0 libfreeimage3 libfreetype6 libcurl4t64 libasound2t64 \
         libgl1 libgl1-mesa-dri libglu1-mesa libvlc5 libvlccore9 \
-        libboost-filesystem1.74.0 libboost-system1.74.0 libboost-locale1.74.0 \
-        libboost-date-time1.74.0 fonts-droid-fallback fonts-dejavu-core \
-        # Emulador + núcleos libretro
+        libboost-filesystem1.83.0 libboost-system1.83.0 libboost-locale1.83.0 \
+        libboost-date-time1.83.0 fonts-droid-fallback fonts-dejavu-core \
+        # Emulador + núcleos libretro (snes9x y genesisplusgx están en multiverse)
         retroarch \
         libretro-snes9x libretro-gambatte libretro-mgba \
-        libretro-genesisplusgx libretro-mupen64plus \
+        libretro-genesisplusgx \
         libretro-beetle-pce-fast \
         # Audio y utilidades
         pulseaudio-utils alsa-utils ca-certificates tini gosu procps \
@@ -104,7 +114,10 @@ RUN ln -s /usr/local/share/emulationstation/resources /usr/local/bin/resources \
     && ln -s "$(ls -d /usr/lib/*-linux-gnu/libretro)" /usr/lib/libretro \
     && mv /tmp/cores/*.so /usr/lib/libretro/ && rmdir /tmp/cores
 
-RUN useradd -m -d "${ES_HOME}" -s /bin/bash -G audio,video "${ES_USER}" \
+# La imagen de 24.04 trae el usuario "ubuntu" con UID 1000: se borra para que
+# "es" tenga el 1000, el habitual del usuario del host.
+RUN userdel -r ubuntu 2>/dev/null; \
+    useradd -m -u 1000 -d "${ES_HOME}" -s /bin/bash -G audio,video "${ES_USER}" \
     && mkdir -p /roms /etc/emulationstation/defaults \
     && chown -R "${ES_USER}:${ES_USER}" /roms
 
@@ -114,6 +127,7 @@ COPY config/retroarch-forzado.cfg /etc/emulationstation/retroarch-forzado.cfg
 COPY tools/es-rom-summary tools/es-retroarch /usr/local/bin/
 COPY ["tools/Recargar lista de juegos.sh", "/opt/es-tools/"]
 COPY config/retroarch-autoconfig/ /etc/retroarch/autoconfig/
+COPY config/retroarch-remaps/ /etc/retroarch/remaps/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/es-rom-summary /usr/local/bin/es-retroarch /opt/es-tools/*.sh
 

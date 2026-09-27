@@ -18,7 +18,7 @@ config and RetroArch config.
 
 - **Builder stage** (`Dockerfile`, `AS builder`): compiles EmulationStation `ES_VERSION` (v2.11.2),
   clones the Carbon theme, and builds the `fceumm` and `fbneo` cores, which Ubuntu does not package.
-- **Runtime stage** (`Dockerfile`): Ubuntu 22.04 with `retroarch`, `libretro-*` apt cores, tini and
+- **Runtime stage** (`Dockerfile`): Ubuntu 24.04 with `retroarch` (1.18), `libretro-*` apt cores, tini and
   gosu. The config is baked into `/etc/emulationstation/`.
 - **Entrypoint** (`entrypoint.sh`): runs as root, prepares everything, then drops to user `es` via
   `gosu`. See [entrypoint](modules/entrypoint.md).

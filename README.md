@@ -29,7 +29,7 @@ emulationstation/
 | `gba`              | Game Boy Advance     | mGBA              |
 | `megadrive`        | Mega Drive / Genesis | Genesis Plus GX   |
 | `mastersystem`     | Master System        | Genesis Plus GX   |
-| `n64`              | Nintendo 64          | Mupen64Plus       |
+| `n64`              | Nintendo 64          | Mupen64Plus-Next  |
 | `psx`              | PlayStation          | PCSX ReARMed      |
 | `pcengine`         | PC Engine            | Beetle PCE Fast   |
 | `arcade`           | Arcade (CPS1/2/3, Neo Geo, System 16, Toaplan, Konami…) | FinalBurn Neo |
@@ -104,7 +104,7 @@ Variables opcionales (en un archivo `.env` o en la línea de comandos):
 ### Rendimiento
 
 - ES usa el **modo de ahorro de energía** (`PowerSaverMode`), sincronía vertical y transiciones instantáneas: en reposo apenas consume CPU. Se cambia en *Other Settings → Power Saver Modes* (se guarda en `es_settings.cfg`).
-- RetroArch va a pantalla completa sin cambiar el modo de vídeo (`video_windowed_fullscreen`), sin shaders, rebobinado ni *run-ahead*. Va **sin vsync**: con GNOME en Wayland el vsync de RetroArch congela los juegos en el primer fotograma; el escritorio ya evita el *tearing* y la sincronía con el audio mantiene la velocidad.
+- RetroArch va a pantalla completa real (el lanzador `es-retroarch` se la pide a GNOME), con vsync y sin shaders, rebobinado ni *run-ahead*. Los ajustes imprescindibles están en `config/retroarch-forzado.cfg` y se aplican en cada partida, aunque tu `retroarch.cfg` sea de una versión anterior.
 - Estos ajustes se copian solo en el primer arranque. Si ya tenías los volúmenes de una versión anterior, bórralos con `docker compose down -v` (pierdes la configuración y las partidas guardadas en ellos) o copia los ajustes de `config/es_settings.cfg` y `config/retroarch.cfg` a mano.
 - La imagen no incluye los plugins de VLC: los temas con vídeos (el tema por defecto, carbon, no los usa) no los reproducirán.
 
@@ -131,9 +131,13 @@ El primer mando conectado es el jugador 1 y el segundo, el jugador 2.
 | **Guide (logo de Xbox)** | **Select + Start** | —           | **salir y volver a EmulationStation**    |
 | **L3 + R3**         | **Select + Triángulo** | —             | **menú de RetroArch** (guardar/cargar estado, opciones) |
 
-Los atajos de salir y abrir el menú funcionan con el mando del jugador 1. En los juegos también se puede salir con `Esc` (teclado) o desde el menú de RetroArch: **L3 + R3 → Quit RetroArch**.
+Los atajos de salir y abrir el menú funcionan con el mando del jugador 1. En los juegos también se puede salir con `Esc` (teclado) o desde el menú de RetroArch: **L3 + R3 → Quit RetroArch**. En el menú de RetroArch, **A acepta y B vuelve**.
 
-**Xbox One S por Bluetooth con firmware antiguo (`02fd`):** los botones **View** y **Guide** llegan al sistema como teclas de teclado, no como botones del mando. En EmulationStation funcionan, pero dentro de los juegos no: no hay Select y Guide no sale del juego (y GNOME puede abrir el navegador al pulsarlo). Para salir usa **L3 + R3 → Quit RetroArch**.
+**En todos los juegos el stick izquierdo mueve igual que la cruceta** (salvo en los que usan el stick analógico, como los de N64, donde sigue siendo analógico).
+
+**NES:** **A** de Xbox = botón A de NES y **X** de Xbox = botón B de NES (la posición del mando original). Está en `config/retroarch-remaps/FCEUmm/FCEUmm.rmp`.
+
+**Xbox One S por Bluetooth (`02fd`, firmware antiguo):** **View** y **Guide** llegan como teclas de teclado. RetroArch los reconoce igualmente (Select y salir), pero GNOME puede abrir el navegador al pulsar Guide.
 
 Requisitos:
 

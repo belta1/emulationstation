@@ -1,0 +1,11 @@
+# Remapeo de RetroArch para NES (núcleo FCEUmm), jugadores 1 y 2.
+# Formato: input_playerN_btn_<botón físico del RetroPad> = <botón que recibe el juego>
+# IDs: 0 = B, 8 = A. Posición física en un mando Xbox: RetroPad B = A (abajo),
+# RetroPad Y = X (izquierda), RetroPad A = B (derecha).
+#   A de Xbox (abajo)     -> A de NES
+#   X de Xbox (izquierda) -> B de NES
+#   B de Xbox (derecha)   -> A de NES (sin cambios)
+input_player1_btn_b = "8"
+input_player1_btn_y = "0"
+input_player2_btn_b = "8"
+input_player2_btn_y = "0"

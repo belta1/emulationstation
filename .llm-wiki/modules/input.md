@@ -7,7 +7,7 @@ status: current
 # Controllers & input
 
 Preconfigured keyboard, Xbox 360 (wired + wireless receiver), Xbox One / Series (USB and Bluetooth)
-and PlayStation Classic mappings, in both ES and RetroArch (RetroArch 1.7.3 from Ubuntu 22.04).
+and PlayStation Classic mappings, in both ES and RetroArch (RetroArch 1.18 from Ubuntu 24.04).
 
 ## Key files & entry points
 
@@ -24,9 +24,17 @@ and PlayStation Classic mappings, in both ES and RetroArch (RetroArch 1.7.3 from
   - 360: `Microsoft X-Box 360 pad`, `Xbox 360 Wireless Receiver` (02a1, 0719). Guide = button 8.
   - Xbox One/Series USB (xpad, d-pad on hat 0): `02d1`, `02dd`, `02ea`, `0b12`. Guide = 8.
   - Xbox One S Bluetooth (hid-microsoft): `02fd` (gapped numbering: Start 11, L3/R3 13/14,
-    LT/RT axes 5/4; no Select/exit, see gotchas) and `02e0` (Guide 10).
+    LT/RT axes 5/4, Back 15, Guide 16) and `02e0` (Guide 10).
   - PlayStation Classic `054c:0cda`: d-pad on axes 0/1; hotkeys via `input_enable_hotkey_btn` =
     Select, Select+Start = exit, Select+Triangle = menu.
+- `config/retroarch-forzado.cfg` → `/etc/emulationstation/retroarch-forzado.cfg`, appended to every
+  launch by `tools/es-retroarch`: vsync on, `input_playerN_analog_dpad_mode = 1` (left stick = d-pad;
+  RetroArch disables it when the core requests analog, e.g. N64), `menu_swap_ok_cancel_buttons`
+  (Xbox A = OK), `input_remapping_directory = /etc/retroarch/remaps`.
+- `config/retroarch-remaps/<core library name>/<same>.rmp` → `/etc/retroarch/remaps/`: per-core
+  remaps. `input_playerN_btn_<physical RetroPad button> = <id the core receives>` (0 = B, 8 = A).
+  NES (`FCEUmm`): Xbox A → NES A, Xbox X → NES B.
+- PS Classic profile binds its d-pad axes as the left stick too, so analog-dpad mode keeps its d-pad.
 
 ## How it works
 
@@ -47,11 +55,11 @@ and PlayStation Classic mappings, in both ES and RetroArch (RetroArch 1.7.3 from
   firmware (5.x) reports xpad-style numbering but gets the 0903 profile; ES handles it (separate GUID).
 - Bluetooth `0b13`/`0b20`/`0b22` are not covered: upstream sources disagree on their numbering.
   ES shows its mapping wizard; in RetroArch map them in *Settings → Input*.
-- In RetroArch 1.7.3 joypad hotkeys only work for the player-1 device. A PS Classic pad as player 1
+- Joypad hotkeys from autoconfig apply to the player-1 device. A PS Classic pad as player 1
   also requires Select held for keyboard hotkeys (Esc).
 - `02fd` on firmware 0903 sends View/Guide as keyboard keys (`KEY_BACK`/`KEY_HOMEPAGE`, below
-  `BTN_MISC`). SDL (ES) counts them as buttons 15/16; RetroArch 1.7.3 udev does not, so in games there
-  is no Select and no Guide exit. Exit is L3+R3 → Quit RetroArch. GNOME may open a browser on Guide.
+  `BTN_MISC`). SDL (ES) and RetroArch 1.18 udev both number them after the real buttons (15/16);
+  RetroArch 1.7.3 ignored them. GNOME may still react to Guide as a Home-page key.
 - Linux hosts only. `input_joypad_driver = "udev"` needs `/run/udev` mounted.
 
 ## Related
