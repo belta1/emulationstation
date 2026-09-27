@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # Resumen de ROMs por sistema de es_systems.cfg: carpeta, extensiones y número
-# de juegos. Formatos:
-#   es-rom-summary            tabla para los logs (docker compose logs)
-#   es-rom-summary --gamelist gamelist.xml del sistema "herramientas", cuya
-#                             descripción muestra este resumen dentro de ES
+# de juegos. Uso:
+#   es-rom-summary                   tabla para los logs (docker compose logs)
+#   es-rom-summary --gamelist FICHERO
+#                                    además escribe en FICHERO el gamelist.xml
+#                                    del sistema "herramientas", cuya
+#                                    descripción muestra este resumen dentro de ES
 set -uo pipefail
+
+gamelist=""
+if [[ "${1:-}" == "--gamelist" ]]; then
+    gamelist="${2:?--gamelist necesita la ruta del gamelist.xml}"
+fi
 
 # Carpeta del host montada en /roms (la pasa docker-compose.yml); solo se usa
 # para mostrar rutas que el usuario reconozca.
@@ -21,10 +28,12 @@ while IFS=$'\t' read -r name path exts; do
     [[ "${path}" == /roms/* ]] || continue
     count=0
     if [[ -d "${path}" ]]; then
+        # Un solo recorrido de la carpeta para todas las extensiones
+        match=()
         for ext in ${exts}; do
-            n=$(find "${path}" -maxdepth 2 -type f -name "*${ext}" 2>/dev/null | wc -l)
-            count=$((count + n))
+            match+=(${match[@]:+-o} -name "*${ext}")
         done
+        count=$(find "${path}" -maxdepth 2 -type f \( "${match[@]}" \) 2>/dev/null | wc -l)
     fi
     total=$((total + count))
     # /roms/<sistema> es <carpeta del host>/<sistema>
@@ -40,24 +49,24 @@ done < <(awk '
 ' "${cfg}")
 
 if [[ "${total}" -eq 0 ]]; then
+    status="No se encontró ningún juego. Copia tus ROMs en ${host_dir}, dentro de la subcarpeta de su sistema (p. ej. ${host_dir}/snes/juego.sfc), y recarga desde Herramientas > Recargar lista de juegos."
+else
+    status="Total: ${total} juego(s). Para detectar juegos nuevos: Herramientas > Recargar lista de juegos."
+fi
+printf '%s\n\n%s\n' "${table}" "${status}"
+
+[[ -n "${gamelist}" ]] || exit 0
+
+if [[ "${total}" -eq 0 ]]; then
     status="No se encontró ningún juego. Copia tus ROMs en ${host_dir}, dentro de la subcarpeta de su sistema (p. ej. ${host_dir}/snes/juego.sfc), y después elige esta opción para recargar la lista."
 else
     status="Total: ${total} juego(s). Si copiaste juegos nuevos, elige esta opción para recargar la lista."
 fi
 
-if [[ "${1:-}" != "--gamelist" ]]; then
-    if [[ "${total}" -eq 0 ]]; then
-        status="No se encontró ningún juego. Copia tus ROMs en ${host_dir}, dentro de la subcarpeta de su sistema (p. ej. ${host_dir}/snes/juego.sfc), y recarga desde Herramientas > Recargar lista de juegos."
-    else
-        status="Total: ${total} juego(s). Para detectar juegos nuevos: Herramientas > Recargar lista de juegos."
-    fi
-    printf '%s\n\n%s\n' "${table}" "${status}"
-    exit 0
-fi
-
 xml_escape() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 desc="$(printf '%s\n\n%s' "${status}" "${lines}" | xml_escape)"
-cat <<XML
+mkdir -p "$(dirname "${gamelist}")"
+cat > "${gamelist}" <<XML
 <?xml version="1.0"?>
 <!-- Generado por es-rom-summary en cada arranque de EmulationStation. -->
 <gameList>

@@ -1,10 +1,10 @@
-# Uso:
-#   docker compose up -d --build              -> modo navegador (noVNC) en http://localhost:6080/vnc.html
+# Uso (host Linux con escritorio X11):
+#   xhost +local:docker          -> permite que el contenedor use tu pantalla
+#   docker compose up -d --build -> ventana a pantalla completa en el X11 del host
 #
 # ROMs: se guardan en el host en ~/docker_compose/config/emulationstation, con
 # una subcarpeta por sistema (nes, snes, gba, arcade...) que el contenedor crea
 # al arrancar. Para usar otra carpeta: ROMS_DIR=/ruta/a/roms en un archivo .env.
-#   docker compose --profile x11 up --build es-x11   -> ventana nativa en el X11 del host (Linux)
 services:
   emulationstation:
     build: .
@@ -14,36 +14,6 @@ services:
     pull_policy: build
     container_name: emulationstation
     environment:
-      DISPLAY_MODE: vnc
-      ROMS_HOST_DIR: ${ROMS_DIR:-~/docker_compose/config/emulationstation}
-      SCREEN_RESOLUTION: ${SCREEN_RESOLUTION:-1280x720x24}
-      VNC_PASSWORD: ${VNC_PASSWORD:-}
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-    ports:
-      - "${NOVNC_PORT:-6080}:6080"   # noVNC (navegador)
-      - "${VNC_PORT:-5900}:5900"     # VNC nativo (opcional)
-    volumes:
-      - ${ROMS_DIR:-~/docker_compose/config/emulationstation}:/roms
-      - es-config:/home/es/.emulationstation
-      - retroarch-config:/home/es/.config/retroarch
-      # Mandos USB conectados al host (solo hosts Linux): descomenta estas dos
-      # líneas y "device_cgroup_rules". noVNC no reenvía los mandos del navegador.
-      # - /dev/input:/dev/input:ro
-      # - /run/udev:/run/udev:ro
-    # device_cgroup_rules:
-    #   - "c 13:* rmw"   # dispositivos de entrada (joysticks, event*)
-    shm_size: "512m"
-    restart: unless-stopped
-
-  es-x11:
-    profiles: ["x11"]
-    image: emulationstation:latest
-    build: .
-    pull_policy: build
-    container_name: emulationstation-x11
-    environment:
-      DISPLAY_MODE: x11
       ROMS_HOST_DIR: ${ROMS_DIR:-~/docker_compose/config/emulationstation}
       DISPLAY: ${DISPLAY:-:0}
       PULSE_SERVER: unix:/run/user/host/pulse/native
@@ -65,7 +35,10 @@ services:
       - "c 13:* rmw"            # dispositivos de entrada (joysticks, event*)
     # Red del host: necesaria para recibir los eventos de udev al conectar/desconectar mandos
     network_mode: host
-    shm_size: "512m"
+    # Memoria compartida del host: el servidor X usa MIT-SHM con el contenedor
+    # (sin copiar cada imagen por el socket)
+    ipc: host
+    restart: unless-stopped
 
 volumes:
   es-config:

@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# Prepara la configuración y arranca EmulationStation.
-#
-# DISPLAY_MODE:
-#   vnc  -> Xvfb + x11vnc + noVNC (abre http://localhost:6080 en el navegador)
-#   x11  -> usa el servidor X del host (monta /tmp/.X11-unix y pasa DISPLAY)
+# Prepara la configuración y arranca EmulationStation en el servidor X11 del
+# host (monta /tmp/.X11-unix y pasa DISPLAY; ver docker-compose.yml).
 set -euo pipefail
 
 ES_USER="${ES_USER:-es}"
 ES_HOME="${ES_HOME:-/home/es}"
 DEFAULTS=/etc/emulationstation/defaults
+
+: "${DISPLAY:?falta DISPLAY: monta /tmp/.X11-unix y pasa DISPLAY (p. ej. :0); en el host ejecuta antes xhost +local:docker}"
 
 # Permite alinear UID/GID con el usuario del host (evita problemas de permisos en volúmenes)
 if [[ -n "${PUID:-}" && "${PUID}" != "$(id -u "${ES_USER}")" ]]; then
@@ -43,6 +42,8 @@ SYSTEMS_CFG="${USER_SYSTEMS}"
 
 [[ -f "${ES_HOME}/.emulationstation/es_input.cfg" ]] \
     || cp "${DEFAULTS}/es_input.cfg" "${ES_HOME}/.emulationstation/es_input.cfg"
+[[ -f "${ES_HOME}/.emulationstation/es_settings.cfg" ]] \
+    || cp "${DEFAULTS}/es_settings.cfg" "${ES_HOME}/.emulationstation/es_settings.cfg"
 [[ -f "${ES_HOME}/.config/retroarch/retroarch.cfg" ]] \
     || cp "${DEFAULTS}/retroarch.cfg" "${ES_HOME}/.config/retroarch/retroarch.cfg"
 
@@ -65,58 +66,30 @@ for dev in /dev/input/event* /dev/input/js* /dev/dri/*; do
     id -nG "${ES_USER}" | grep -qw "${group}" || usermod -aG "${group}" "${ES_USER}"
 done
 
-chown -R "${ES_USER}:${ES_USER}" "${ES_HOME}"
+# Solo cambia el dueño de lo que no es ya del usuario (partidas y estados
+# guardados crecen; un chown -R completo en cada arranque es I/O inútil)
+find "${ES_HOME}" \( ! -user "${ES_USER}" -o ! -group "${ES_USER}" \) \
+    -exec chown -h "${ES_USER}:${ES_USER}" {} +
 chown "${ES_USER}:${ES_USER}" /roms /roms/* 2>/dev/null || true
-
-# Resumen de ROMs en los logs (docker compose logs)
-echo ">> ROMs detectadas:"
-gosu "${ES_USER}" env HOME="${ES_HOME}" es-rom-summary | sed 's/^/   /'
-
-case "${DISPLAY_MODE:-vnc}" in
-    vnc)
-        export DISPLAY=:99
-        rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
-        mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
-        gosu "${ES_USER}" Xvfb :99 -screen 0 "${SCREEN_RESOLUTION:-1280x720x24}" -nolisten tcp &
-        for _ in $(seq 1 50); do [[ -e /tmp/.X11-unix/X99 ]] && break; sleep 0.1; done
-
-        VNC_ARGS=(-display :99 -forever -shared -rfbport "${VNC_PORT:-5900}" -quiet)
-        if [[ -n "${VNC_PASSWORD:-}" ]]; then
-            gosu "${ES_USER}" x11vnc -storepasswd "${VNC_PASSWORD}" "${ES_HOME}/.vncpass" >/dev/null
-            VNC_ARGS+=(-rfbauth "${ES_HOME}/.vncpass")
-        else
-            VNC_ARGS+=(-nopw)
-        fi
-        gosu "${ES_USER}" x11vnc "${VNC_ARGS[@]}" &
-        websockify --web /usr/share/novnc "${NOVNC_PORT:-6080}" "localhost:${VNC_PORT:-5900}" >/dev/null 2>&1 &
-        echo ">> noVNC disponible en http://localhost:${NOVNC_PORT:-6080}/vnc.html"
-        ;;
-    x11)
-        : "${DISPLAY:?DISPLAY_MODE=x11 requiere la variable DISPLAY}"
-        ;;
-    *)
-        echo "DISPLAY_MODE desconocido: ${DISPLAY_MODE}" >&2
-        exit 1
-        ;;
-esac
 
 if [[ "${1:-}" == "emulationstation" ]]; then
     shift
-    # En modo vnc la pantalla es virtual: ventana a tamaño completo del Xvfb
-    ES_ARGS=(--no-splash)
-    if [[ "${DISPLAY_MODE:-vnc}" == "vnc" ]]; then
-        IFS=x read -r W H _ <<<"${SCREEN_RESOLUTION:-1280x720x24}"
-        ES_ARGS+=(--resolution "${W}" "${H}" --windowed)
+    # Al arrancar el equipo el contenedor puede empezar antes que el escritorio:
+    # espera al socket del servidor X en vez de relanzar ES en bucle.
+    X_SOCKET="/tmp/.X11-unix/X$(sed -E 's/^[^:]*:([0-9]+).*/\1/' <<<"${DISPLAY}")"
+    if [[ "${DISPLAY}" == :* && ! -S "${X_SOCKET}" ]]; then
+        echo ">> Esperando al servidor X (${X_SOCKET})..."
+        until [[ -S "${X_SOCKET}" ]]; do sleep 2; done
     fi
     # Reinicia EmulationStation si se cierra (p. ej. "Quit" desde el menú),
     # salvo que se haya pedido detener el contenedor.
     TOOLS_GAMELIST="${ES_HOME}/.emulationstation/gamelists/herramientas/gamelist.xml"
     while true; do
-        # Regenera la ayuda de Herramientas con el recuento de ROMs actual
-        gosu "${ES_USER}" mkdir -p "$(dirname "${TOOLS_GAMELIST}")"
-        gosu "${ES_USER}" env HOME="${ES_HOME}" es-rom-summary --gamelist > "${TOOLS_GAMELIST}"
-        chown "${ES_USER}:${ES_USER}" "${TOOLS_GAMELIST}"
-        gosu "${ES_USER}" env HOME="${ES_HOME}" emulationstation "${ES_ARGS[@]}" "$@" || true
+        # Resumen de ROMs en los logs (docker compose logs) y ayuda de
+        # Herramientas con el recuento actual, en un solo recorrido
+        echo ">> ROMs detectadas:"
+        gosu "${ES_USER}" env HOME="${ES_HOME}" es-rom-summary --gamelist "${TOOLS_GAMELIST}" | sed 's/^/   /'
+        gosu "${ES_USER}" env HOME="${ES_HOME}" emulationstation --no-splash "$@" || true
         [[ "${ES_RESTART:-true}" == "true" ]] || break
         sleep 1
     done

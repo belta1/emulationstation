@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 # EmulationStation (fork de RetroPie) + RetroArch en Docker.
 # Etapa 1: compila EmulationStation desde el código fuente.
-# Etapa 2: imagen de ejecución con RetroArch, núcleos libretro y un
-#          escritorio virtual opcional (Xvfb + x11vnc + noVNC).
+# Etapa 2: imagen de ejecución con RetroArch y núcleos libretro. Se muestra
+#          en el servidor X11 del host (con GPU), sin escritorio virtual.
 
 ARG UBUNTU_VERSION=22.04
 
@@ -18,7 +18,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential cmake git ca-certificates pkg-config \
         libsdl2-dev libfreeimage-dev libfreetype6-dev libcurl4-openssl-dev \
-        rapidjson-dev libasound2-dev libgl1-mesa-dev libboost-all-dev \
+        rapidjson-dev libasound2-dev libgl1-mesa-dev \
+        libboost-filesystem-dev libboost-system-dev libboost-locale-dev \
+        libboost-date-time-dev \
         libvlc-dev libvlccore-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,7 +34,8 @@ RUN git clone --depth 1 "${THEME_REPO}" /src/themes/carbon \
 
 WORKDIR /src/EmulationStation/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DGL=ON .. \
-    && make -j"$(nproc)"
+    && make -j"$(nproc)" \
+    && strip --strip-unneeded ../emulationstation
 
 # Núcleos que Ubuntu no empaqueta; se compilan desde el código fuente y se
 # dejan en /src/cores.
@@ -50,6 +53,17 @@ RUN git clone --depth 1 "${FBNEO_REPO}" /src/fbneo \
     && make -C /src/fbneo/src/burner/libretro -j"$(nproc)" \
     && cp /src/fbneo/src/burner/libretro/fbneo_libretro.so /src/cores/
 
+# PlayStation: PCSX ReARMed. Mucho más ligero que Beetle PSX y acepta
+# cualquier BIOS de la carpeta bios/ (scph1001.bin, scph5501.bin...), con
+# BIOS emulada (HLE) si no hay ninguna.
+ARG PCSX_REPO=https://github.com/libretro/pcsx_rearmed.git
+RUN git clone --depth 1 --recurse-submodules "${PCSX_REPO}" /src/pcsx \
+    && make -C /src/pcsx -f Makefile.libretro -j"$(nproc)" \
+    && cp /src/pcsx/pcsx_rearmed_libretro.so /src/cores/
+
+# Sin símbolos de depuración: imagen más pequeña y carga más rápida
+RUN strip --strip-unneeded /src/cores/*.so
+
 ############################
 # Etapa 2: runtime
 ############################
@@ -58,27 +72,22 @@ FROM ubuntu:${UBUNTU_VERSION}
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     ES_USER=es \
-    ES_HOME=/home/es \
-    DISPLAY_MODE=vnc \
-    SCREEN_RESOLUTION=1280x720x24 \
-    VNC_PORT=5900 \
-    NOVNC_PORT=6080
+    ES_HOME=/home/es
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        # Librerías que necesita EmulationStation
+        # Librerías que necesita EmulationStation (libvlc se enlaza, pero sin
+        # plugins de VLC: el tema carbon no reproduce vídeos)
         libsdl2-2.0-0 libfreeimage3 libfreetype6 libcurl4 libasound2 \
-        libgl1 libgl1-mesa-dri libglu1-mesa libvlc5 libvlccore9 vlc-plugin-base \
+        libgl1 libgl1-mesa-dri libglu1-mesa libvlc5 libvlccore9 \
         libboost-filesystem1.74.0 libboost-system1.74.0 libboost-locale1.74.0 \
         libboost-date-time1.74.0 fonts-droid-fallback fonts-dejavu-core \
         # Emulador + núcleos libretro
         retroarch \
         libretro-snes9x libretro-gambatte libretro-mgba \
-        libretro-genesisplusgx libretro-mupen64plus libretro-beetle-psx \
+        libretro-genesisplusgx libretro-mupen64plus \
         libretro-beetle-pce-fast \
-        # Escritorio virtual para el modo navegador
-        xvfb x11vnc novnc websockify \
         # Audio y utilidades
-        pulseaudio-utils alsa-utils ca-certificates tini gosu unzip procps \
+        pulseaudio-utils alsa-utils ca-certificates tini gosu procps \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /src/EmulationStation/emulationstation /usr/local/bin/emulationstation
@@ -98,7 +107,7 @@ RUN useradd -m -d "${ES_HOME}" -s /bin/bash -G audio,video "${ES_USER}" \
     && chown -R "${ES_USER}:${ES_USER}" /roms
 
 COPY config/es_systems.cfg /etc/emulationstation/es_systems.cfg
-COPY config/es_input.cfg config/retroarch.cfg /etc/emulationstation/defaults/
+COPY config/es_input.cfg config/es_settings.cfg config/retroarch.cfg /etc/emulationstation/defaults/
 COPY tools/es-rom-summary /usr/local/bin/es-rom-summary
 COPY ["tools/Recargar lista de juegos.sh", "/opt/es-tools/"]
 COPY config/retroarch-autoconfig/ /etc/retroarch/autoconfig/
@@ -106,7 +115,6 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/es-rom-summary /opt/es-tools/*.sh
 
 VOLUME ["/roms", "/home/es/.emulationstation", "/home/es/.config/retroarch"]
-EXPOSE 5900 6080
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["emulationstation"]
