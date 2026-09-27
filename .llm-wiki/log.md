@@ -26,3 +26,17 @@ architecture, conventions, glossary, recipes, modules/{entrypoint,deploy,image-b
 02fd/02e0, Xbox One/Series USB, PS Classic). New RetroArch udev profiles per product ID. The Guide
 exit hotkey moved from global `retroarch.cfg` into each profile (PS Classic: Select+Start /
 Select+Triangle). Pages: modules/input.md, index.
+
+## [2026-09-27] update | RetroArch vsync off (Xwayland freeze)
+On GNOME Wayland hosts, RetroArch 1.7.3 picks GLX_OML_sync_control and blocks forever in the first
+swap under Xwayland (games froze on launch). Verified on jfubuntu: 120 frames never finish with
+vsync on; finish in ~2 s with vsync off. `config/retroarch.cfg` now ships `video_vsync = "false"`.
+Pages: architecture, index.
+
+## [2026-09-27] update | es-retroarch launcher (real fullscreen + forced settings)
+New `tools/es-retroarch` (all es_systems commands use it) runs `retroarch -f --appendconfig
+/etc/emulationstation/retroarch-forzado.cfg` (forces `video_vsync = "false"` even with an old
+volume config) and then `wmctrl -r RetroArch -b add,fullscreen`, because GNOME only maximizes
+RetroArch 1.7.3's own fullscreen window. `wmctrl` added to the runtime image. Verified live on
+jfubuntu (1920x1080, frames advancing). Documented that Xbox BT `02fd` fw 0903 View/Guide are
+invisible to RetroArch. Pages: architecture, recipes, modules/{image-build,input}.

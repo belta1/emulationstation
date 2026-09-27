@@ -33,7 +33,7 @@ Optional `.env` next to `docker-compose.yml`: `ROMS_DIR`, `DISPLAY`, `XDG_RUNTIM
 ## Add a system
 
 1. Add a `<system>` block to `config/es_systems.cfg`, with each tag on its own line. `<path>` must be
-   `/roms/<name>`. The command is `retroarch -f -L /usr/lib/libretro/<core>_libretro.so %ROM%`.
+   `/roms/<name>`. The command is `es-retroarch -L /usr/lib/libretro/<core>_libretro.so %ROM%` (the `tools/es-retroarch` launcher; never call `retroarch` directly, or vsync-off and real fullscreen are lost).
 2. Make sure the core exists: add a `libretro-<x>` apt package to the runtime stage of `Dockerfile`, or
    build it in the builder stage and `cp` the `.so` to `/src/cores/` (see [image-build](modules/image-build.md)).
    Check the exact `.so` filename the package installs.

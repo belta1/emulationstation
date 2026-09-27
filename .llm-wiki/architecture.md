@@ -42,7 +42,9 @@ tini → entrypoint.sh (root)
   ├─ wait for the host X socket /tmp/.X11-unix/X<n>
   └─ loop: es-rom-summary --gamelist <herramientas gamelist.xml>  (also prints ">> ROMs detectadas:")
            gosu es emulationstation --no-splash   (restart on exit unless ES_RESTART≠true)
-game launch: ES → `retroarch -f -L /usr/lib/libretro/<core>.so %ROM%` (from es_systems.cfg)
+game launch: ES → `es-retroarch -L /usr/lib/libretro/<core>.so %ROM%` (from es_systems.cfg)
+             → retroarch -f --appendconfig /etc/emulationstation/retroarch-forzado.cfg …
+             → wmctrl -r RetroArch -b add,fullscreen   (GNOME otherwise only maximizes it)
 ```
 
 ## Who reads `es_systems.cfg`
@@ -70,6 +72,6 @@ the entrypoint and es-rom-summary.
 - `es_systems.cfg` is **not** copied to the volume, so new systems ship with the image. `es_input.cfg`,
   `es_settings.cfg` and `retroarch.cfg` **are** copied on first run only, so user menu changes persist.
 - Low resource use is a goal: `config/es_settings.cfg` enables ES `PowerSaverMode` (ES sleeps between
-  events), black screensaver and instant transitions; `config/retroarch.cfg` uses vsync, windowed
+  events), black screensaver and instant transitions; `config/retroarch.cfg` uses **no vsync** (GLX OML_sync_control hangs forever under Xwayland; the compositor is tear-free and `audio_sync` paces frames), windowed
   fullscreen and no shaders/rewind/run-ahead; binaries and built cores are stripped; no VLC plugins.
 - ES runs in a restart loop. "Recargar lista de juegos" kills ES on purpose to force a rescan.

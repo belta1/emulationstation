@@ -23,8 +23,8 @@ and PlayStation Classic mappings, in both ES and RetroArch (RetroArch 1.7.3 from
   the global bind is unset):
   - 360: `Microsoft X-Box 360 pad`, `Xbox 360 Wireless Receiver` (02a1, 0719). Guide = button 8.
   - Xbox One/Series USB (xpad, d-pad on hat 0): `02d1`, `02dd`, `02ea`, `0b12`. Guide = 8.
-  - Xbox One S Bluetooth (hid-microsoft): `02fd` (gapped numbering: Back 15, Start 11, Guide 16,
-    LT/RT axes 5/4) and `02e0` (Guide 10).
+  - Xbox One S Bluetooth (hid-microsoft): `02fd` (gapped numbering: Start 11, L3/R3 13/14,
+    LT/RT axes 5/4; no Select/exit, see gotchas) and `02e0` (Guide 10).
   - PlayStation Classic `054c:0cda`: d-pad on axes 0/1; hotkeys via `input_enable_hotkey_btn` =
     Select, Select+Start = exit, Select+Triangle = menu.
 
@@ -49,6 +49,9 @@ and PlayStation Classic mappings, in both ES and RetroArch (RetroArch 1.7.3 from
   ES shows its mapping wizard; in RetroArch map them in *Settings → Input*.
 - In RetroArch 1.7.3 joypad hotkeys only work for the player-1 device. A PS Classic pad as player 1
   also requires Select held for keyboard hotkeys (Esc).
+- `02fd` on firmware 0903 sends View/Guide as keyboard keys (`KEY_BACK`/`KEY_HOMEPAGE`, below
+  `BTN_MISC`). SDL (ES) counts them as buttons 15/16; RetroArch 1.7.3 udev does not, so in games there
+  is no Select and no Guide exit. Exit is L3+R3 → Quit RetroArch. GNOME may open a browser on Guide.
 - Linux hosts only. `input_joypad_driver = "udev"` needs `/run/udev` mounted.
 
 ## Related

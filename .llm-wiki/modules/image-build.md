@@ -21,12 +21,12 @@ installs RetroArch and the apt cores, then bakes in the config. It is kept lean 
   `cmake -DGL=ON` + `make` + `strip`. Clones the Carbon theme (`.git` stripped). Builds `fceumm` (NES), `fbneo`
   (arcade) and `pcsx_rearmed` (PSX, with submodules) into `/src/cores/`, then `strip --strip-unneeded` on them.
 - **Runtime:** apt `retroarch` + `libretro-{snes9x,gambatte,mgba,genesisplusgx,mupen64plus,beetle-pce-fast}`,
-  `tini gosu`. `libvlc5`/`libvlccore9` are installed because ES links them, but not `vlc-plugin-base`
+  `tini gosu wmctrl`. `libvlc5`/`libvlccore9` are installed because ES links them, but not `vlc-plugin-base`
   (no theme video playback). It copies the ES binary to `/usr/local/bin/emulationstation`
   and its resources to `/usr/local/share/emulationstation/resources`, with a symlink next to the binary.
 - `/usr/lib/libretro` → symlink to `/usr/lib/*-linux-gnu/libretro` (amd64/arm64). Built cores are moved there.
 - Baked paths: `/etc/emulationstation/es_systems.cfg`, `/etc/emulationstation/defaults/{es_input,es_settings,retroarch}.cfg`,
-  `/etc/emulationstation/themes/`, `/etc/retroarch/autoconfig/`, `/usr/local/bin/es-rom-summary`,
+  `/etc/emulationstation/themes/`, `/etc/emulationstation/retroarch-forzado.cfg`, `/etc/retroarch/autoconfig/`, `/usr/local/bin/{es-rom-summary,es-retroarch}`,
   `/opt/es-tools/`, `/usr/local/bin/entrypoint.sh`.
 - Declared volumes: `/roms`, `/home/es/.emulationstation`, `/home/es/.config/retroarch`. No exposed ports.
 - `ENTRYPOINT tini -- entrypoint.sh`, `CMD emulationstation`. See [entrypoint](entrypoint.md).

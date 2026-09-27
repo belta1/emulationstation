@@ -32,7 +32,7 @@ User-facing text (README, logs, UI strings, comments) is in **Spanish**.
 | Systems | `config/es_systems.cfg` | One `<system>` per console: ROM folder, extensions, RetroArch core command | [systems](modules/systems.md) |
 | Herramientas + ROM summary | `tools/es-rom-summary`, `tools/Recargar lista de juegos.sh` | Always-present "Herramientas" system; ROM count table for logs and for the in-ES description | [herramientas](modules/herramientas.md) |
 | Controllers / input | `config/es_input.cfg`, `config/retroarch.cfg`, `config/retroarch-autoconfig/` | Keyboard, Xbox 360, Xbox One/Series (USB + Bluetooth) and PS Classic mappings for ES and RetroArch, 2 players; per-profile exit hotkey | [input](modules/input.md) |
-| Performance defaults | `config/es_settings.cfg`, `config/retroarch.cfg` | ES power saver / screensaver / transitions; RetroArch vsync, windowed fullscreen, no shaders | [architecture](architecture.md#key-decisions--constraints) |
+| Performance defaults | `config/es_settings.cfg`, `config/retroarch.cfg` | ES power saver / screensaver / transitions; RetroArch no-vsync (Xwayland hang), windowed fullscreen, no shaders | [architecture](architecture.md#key-decisions--constraints) |
 | Compose / deploy | `docker-compose.yml`, `scripts/crear-carpetas-roms.{sh,ps1}` | Single `emulationstation` service on the host X11 display, volumes, env vars, host ROM folder setup, Portainer | [deploy](modules/deploy.md) |
 | User docs | `README.md` | Spanish user guide (systems table, controls, Portainer, customization) | — |
 

@@ -88,6 +88,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libretro-beetle-pce-fast \
         # Audio y utilidades
         pulseaudio-utils alsa-utils ca-certificates tini gosu procps \
+        # Pantalla completa real de RetroArch en GNOME (ver tools/es-retroarch)
+        wmctrl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /src/EmulationStation/emulationstation /usr/local/bin/emulationstation
@@ -108,11 +110,12 @@ RUN useradd -m -d "${ES_HOME}" -s /bin/bash -G audio,video "${ES_USER}" \
 
 COPY config/es_systems.cfg /etc/emulationstation/es_systems.cfg
 COPY config/es_input.cfg config/es_settings.cfg config/retroarch.cfg /etc/emulationstation/defaults/
-COPY tools/es-rom-summary /usr/local/bin/es-rom-summary
+COPY config/retroarch-forzado.cfg /etc/emulationstation/retroarch-forzado.cfg
+COPY tools/es-rom-summary tools/es-retroarch /usr/local/bin/
 COPY ["tools/Recargar lista de juegos.sh", "/opt/es-tools/"]
 COPY config/retroarch-autoconfig/ /etc/retroarch/autoconfig/
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/es-rom-summary /opt/es-tools/*.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/es-rom-summary /usr/local/bin/es-retroarch /opt/es-tools/*.sh
 
 VOLUME ["/roms", "/home/es/.emulationstation", "/home/es/.config/retroarch"]
 
