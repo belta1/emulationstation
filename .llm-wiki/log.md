@@ -50,3 +50,17 @@ removed so `es` is UID 1000. `retroarch-forzado.cfg` now forces vsync on, left s
 (mode 1), Xbox A = menu OK, and `/etc/retroarch/remaps` (new `config/retroarch-remaps/`, NES
 X→B / A→A). 02fd profile regains Back 15 / Guide 16 (RetroArch 1.18 udev sees KEY_BACK/HOMEPAGE).
 Pages: index, architecture, modules/{image-build,input,systems}.
+
+## [2026-09-27] update | ES GUID match without SDL name CRC; builder reorder
+After the 24.04 move, SDL 2.30 reported pads with a name CRC in GUID bytes 2-3 (e.g.
+`050018dc5e04…`) and new names ("Xbox One S Controller"), so ES showed them as unconfigured.
+The Dockerfile now patches ES `InputManager::loadInputConfig` to retry with bytes 2-3 zeroed.
+Builder now compiles cores before ES so ES changes don't rebuild FBNeo. Pages: modules/{input,image-build}.
+
+## [2026-10-05] update | X cookie auto-auth, XDG_RUNTIME_DIR in container
+ES died in a loop with "Authorization required" whenever `xhost +local:docker` wasn't run in the
+current desktop session. Compose now mounts the whole host `XDG_RUNTIME_DIR` read-only at
+`/run/user/host`. Before each ES start, `entrypoint.sh` copies the session X cookie (GNOME Wayland /
+GNOME X11 / KDE, or `XAUTH_FILE`) to `~/.Xauthority` with the wildcard family. It also gives `es` a
+private `XDG_RUNTIME_DIR` (`/tmp/runtime-es`). `xauth` was added to the image, and `xhost` is now a
+fallback. Pages: index, architecture, recipes, modules/{entrypoint,deploy,image-build}.

@@ -71,7 +71,7 @@ Para usar otra carpeta, crea un archivo `.env` junto a `docker-compose.yml` con 
 
 1. **Stacks → Add stack → Repository**. URL del repositorio, referencia `refs/heads/main`, *Compose path* `docker-compose.yml` y, si el repositorio es privado, activa *Authentication* con tus credenciales de GitHub.
 2. En **Environment variables** añade `ROMS_DIR` con la **ruta absoluta** de la carpeta de ROMs en el equipo, por ejemplo `/home/tu_usuario/docker_compose/config/emulationstation`. Con Portainer no uses `~`: Compose se ejecuta dentro del contenedor de Portainer y `~` no apunta al home de tu usuario. Si la pantalla no es `:0` añade `DISPLAY`, y si tu usuario no tiene UID 1000 añade `XDG_RUNTIME_DIR` (`/run/user/<tu UID>`, para el sonido) junto con `PUID`/`PGID`.
-   El equipo tiene que tener la sesión gráfica abierta y haber ejecutado `xhost +local:docker` en ella (por ejemplo, desde el inicio automático del escritorio). Si el contenedor arranca antes que el escritorio, espera al servidor X.
+   El equipo tiene que tener la sesión gráfica abierta. El contenedor monta `XDG_RUNTIME_DIR` y usa la cookie de X de esa sesión, así que no hace falta `xhost`. Si en los logs aparece `AVISO: no se encontró la cookie de X`, ejecuta `xhost +local:docker` en la sesión (por ejemplo, desde el inicio automático del escritorio). Si el contenedor arranca antes que el escritorio, espera al servidor X.
 3. **Deploy the stack**. La primera vez compila la imagen (tarda un rato, sobre todo FinalBurn Neo).
 4. Para actualizar: **Pull and redeploy**. `docker-compose.yml` tiene `pull_policy: build`, así que la imagen se reconstruye en cada despliegue con los últimos cambios (con caché, solo lo que cambió).
 
@@ -81,12 +81,11 @@ Para comprobar que corre la versión actual, mira los logs del contenedor en Por
 
 ```bash
 git clone https://github.com/belta1/emulationstation.git && cd emulationstation
-xhost +local:docker                       # permite que el contenedor use tu pantalla
-docker compose up -d --build
+docker compose up -d --build              # usa la cookie de X de tu sesión (sin xhost)
 # copia tus ROMs, p. ej.: ~/docker_compose/config/emulationstation/nes/juego.nes, ~/docker_compose/config/emulationstation/snes/juego.sfc
 ```
 
-EmulationStation se abre a pantalla completa en el escritorio. El contenedor monta `/tmp/.X11-unix`, `/dev/dri` (aceleración GPU Intel/AMD), `/dev/input` + `/run/udev` (mandos, con conexión en caliente) y el socket de PulseAudio para el sonido. Para NVIDIA, usa el NVIDIA Container Toolkit y añade `gpus: all` al servicio.
+EmulationStation se abre a pantalla completa en el escritorio. El contenedor monta `/tmp/.X11-unix`, `/dev/dri` (aceleración GPU Intel/AMD), `/dev/input` + `/run/udev` (mandos, con conexión en caliente) y la carpeta de sesión del usuario (`XDG_RUNTIME_DIR`, solo lectura) para el sonido de PulseAudio y la cookie de X. Para NVIDIA, usa el NVIDIA Container Toolkit y añade `gpus: all` al servicio.
 
 EmulationStation solo muestra los sistemas que tienen al menos un juego. Si todavía no hay ROMs, verás únicamente el sistema **Herramientas**. En él, la opción **Recargar lista de juegos** muestra en su descripción cada subcarpeta de ROMs, las extensiones que acepta y cuántos juegos se detectaron. Después de copiar juegos nuevos, elígela: EmulationStation vuelve a buscar ROMs sin reiniciar el contenedor.
 
@@ -98,7 +97,8 @@ Variables opcionales (en un archivo `.env` o en la línea de comandos):
 |---------------------|----------------|-----------------------------------------------|
 | `ROMS_DIR`          | `~/docker_compose/config/emulationstation` | Carpeta del host con las ROMs |
 | `DISPLAY`           | `:0`           | Pantalla X11 del host                         |
-| `XDG_RUNTIME_DIR`   | `/run/user/1000` | Carpeta con el socket de PulseAudio del usuario |
+| `XDG_RUNTIME_DIR`   | `/run/user/1000` | Carpeta de sesión del usuario (PulseAudio y cookie de X) |
+| `XAUTH_FILE`        | (automático)   | Cookie de X a usar, como ruta dentro del contenedor (p. ej. `/run/user/host/gdm/Xauthority`) |
 | `PUID` / `PGID`     | `1000`         | UID/GID con el que se escriben los volúmenes  |
 
 ### Rendimiento

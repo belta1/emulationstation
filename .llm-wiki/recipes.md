@@ -11,7 +11,7 @@ No package manager, tests or linters exist here. Every workflow goes through Doc
 ## Run locally
 
 ```bash
-xhost +local:docker && docker compose up -d --build   # fullscreen on the host X11 display (Linux)
+docker compose up -d --build   # fullscreen on the host X11 display (Linux)
 docker compose logs -f                             # follow logs
 docker stats emulationstation                      # CPU/RAM (ES idle should be near 0%)
 docker compose exec emulationstation bash          # shell (root; ES runs as user `es`)
@@ -23,7 +23,7 @@ Optional `.env` next to `docker-compose.yml`: `ROMS_DIR`, `DISPLAY`, `XDG_RUNTIM
 
 ## Verify a change
 
-1. `xhost +local:docker && docker compose up -d --build`
+1. `docker compose up -d --build`
 2. `docker compose logs emulationstation`: expect `>> ROMs detectadas:` with one row per `/roms/*`
    system. A missing table means an old image is running.
 3. On the host screen, check that the systems appear, then launch a game (exits with Esc / Guide).

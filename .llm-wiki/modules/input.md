@@ -12,6 +12,7 @@ and PlayStation Classic mappings, in both ES and RetroArch (RetroArch 1.18 from 
 ## Key files & entry points
 
 - `config/es_input.cfg`: ES keyboard + joystick `<inputConfig>`s. ES matches by SDL GUID first, then by
+  the same GUID with bytes 2-3 zeroed (image patch, see [image-build](image-build.md)), then by
   `deviceName` (first match wins). The Xbox One / Series / PS Classic block was generated from
   SDL_GameControllerDB Linux entries (SDL `a/b/x/y` → ES `a/b/y/x`, `guide` → `hotkeyenable`). The
   first `Xbox Wireless Controller` entry (Bluetooth `02fd`, firmware 0903) is the by-name fallback.

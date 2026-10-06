@@ -21,7 +21,7 @@ installs RetroArch and the apt cores, then bakes in the config. It is kept lean 
   `cmake -DGL=ON` + `make` + `strip`. Clones the Carbon theme (`.git` stripped). Builds `fceumm` (NES), `fbneo`
   (arcade), `pcsx_rearmed` (PSX, with submodules) and `mupen64plus_next` (N64; needs nasm) into `/src/cores/`, then `strip --strip-unneeded` on them.
 - **Runtime:** apt `retroarch` + `libretro-{snes9x,gambatte,mgba,genesisplusgx,beetle-pce-fast}` (snes9x and genesisplusgx come from multiverse),
-  `tini gosu wmctrl`. `libvlc5`/`libvlccore9` are installed because ES links them, but not `vlc-plugin-base`
+  `tini gosu wmctrl xauth` (xauth copies the host X cookie, see entrypoint). `libvlc5`/`libvlccore9` are installed because ES links them, but not `vlc-plugin-base`
   (no theme video playback). It copies the ES binary to `/usr/local/bin/emulationstation`
   and its resources to `/usr/local/share/emulationstation/resources`, with a symlink next to the binary.
 - `/usr/lib/libretro` → symlink to `/usr/lib/*-linux-gnu/libretro` (amd64/arm64). Built cores are moved there.
@@ -45,6 +45,11 @@ installs RetroArch and the apt cores, then bakes in the config. It is kept lean 
 - Anything `COPY`'d must survive `.dockerignore`; `*.md` files and `scripts/` are excluded.
 - No BuildKit-only syntax (`RUN --mount`): Portainer may build with the legacy builder.
 - New cores built from source should also be stripped (the `strip /src/cores/*.so` step covers `/src/cores`).
+- Builder order: cores first, then theme + ES, so ES-only changes reuse the cached core layers.
+- ES source patch (`sed` on `es-core/src/InputManager.cpp`, guarded by `grep -q`): SDL 2.26+ puts a
+  CRC of the device name in GUID bytes 2-3, so SDL_GameControllerDB-style GUIDs (`0000` there) no
+  longer matched and pads showed as unconfigured. ES now retries the lookup with those bytes zeroed.
+  If `ES_VERSION` changes and the line moves, the build fails on the `grep`.
 
 ## Related
 

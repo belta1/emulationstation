@@ -65,7 +65,7 @@ the entrypoint and es-rom-summary.
 - Build-time Git clones: RetroPie/EmulationStation, es-theme-carbon, libretro-fceumm, FBNeo (all
   `--depth 1`; the cores and theme are unpinned HEAD).
 - Host (Linux only): `/dev/input` + `/run/udev` (controllers), `/dev/dri` (GPU), `/tmp/.X11-unix`
-  (needs `xhost +local:docker`), the PulseAudio socket, and host IPC (`ipc: host`, for X11 MIT-SHM).
+  (auth via the session X cookie; `xhost +local:docker` only as fallback), the whole `XDG_RUNTIME_DIR` read-only (PulseAudio socket + X cookie), and host IPC (`ipc: host`, for X11 MIT-SHM).
 
 ## Key decisions & constraints
 

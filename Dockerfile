@@ -28,21 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         nasm zlib1g-dev libpng-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --depth 1 --branch "${ES_VERSION}" --recurse-submodules \
-        "${ES_REPO}" /src/EmulationStation
-
-# Tema por defecto (sin tema ES solo muestra texto plano)
-ARG THEME_REPO=https://github.com/RetroPie/es-theme-carbon.git
-RUN git clone --depth 1 "${THEME_REPO}" /src/themes/carbon \
-    && rm -rf /src/themes/carbon/.git
-
-WORKDIR /src/EmulationStation/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DGL=ON .. \
-    && make -j"$(nproc)" \
-    && strip --strip-unneeded ../emulationstation
-
 # Núcleos que Ubuntu no empaqueta; se compilan desde el código fuente y se
-# dejan en /src/cores.
+# dejan en /src/cores. Van antes que EmulationStation para que un cambio en ES
+# no obligue a recompilarlos (FBNeo tarda mucho).
 RUN mkdir -p /src/cores
 
 # NES: FCEUmm
@@ -74,6 +62,28 @@ RUN git clone --depth 1 "${MUPEN_REPO}" /src/mupen \
 # Sin símbolos de depuración: imagen más pequeña y carga más rápida
 RUN strip --strip-unneeded /src/cores/*.so
 
+# Tema por defecto (sin tema ES solo muestra texto plano)
+ARG THEME_REPO=https://github.com/RetroPie/es-theme-carbon.git
+RUN git clone --depth 1 "${THEME_REPO}" /src/themes/carbon \
+    && rm -rf /src/themes/carbon/.git
+
+RUN git clone --depth 1 --branch "${ES_VERSION}" --recurse-submodules \
+        "${ES_REPO}" /src/EmulationStation
+
+# SDL 2.26+ (Ubuntu 24.04 trae 2.30) mete un CRC del nombre del mando en los
+# bytes 2-3 de su GUID; los GUID de es_input.cfg (SDL_GameControllerDB) los
+# tienen a 0000. Si no hay coincidencia exacta, ES prueba con esos bytes a
+# cero antes de buscar por nombre. El grep hace fallar la compilación si el
+# parche deja de aplicarse (p. ej. al cambiar ES_VERSION).
+RUN sed -i '/pugi::xml_node configNode = root.find_child_by_attribute("inputConfig", "deviceGUID", config->getDeviceGUIDString().c_str());/a if(!configNode) { std::string guid = config->getDeviceGUIDString(); if(guid.size() == 32) { guid.replace(4, 4, "0000"); configNode = root.find_child_by_attribute("inputConfig", "deviceGUID", guid.c_str()); } }' \
+        /src/EmulationStation/es-core/src/InputManager.cpp \
+    && grep -q 'guid.replace(4, 4, "0000")' /src/EmulationStation/es-core/src/InputManager.cpp
+
+WORKDIR /src/EmulationStation/build
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DGL=ON .. \
+    && make -j"$(nproc)" \
+    && strip --strip-unneeded ../emulationstation
+
 ############################
 # Etapa 2: runtime
 ############################
@@ -100,6 +110,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pulseaudio-utils alsa-utils ca-certificates tini gosu procps \
         # Pantalla completa real de RetroArch en GNOME (ver tools/es-retroarch)
         wmctrl \
+        # Copia la cookie de X de la sesión del host (ver entrypoint.sh)
+        xauth \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /src/EmulationStation/emulationstation /usr/local/bin/emulationstation

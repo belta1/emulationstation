@@ -17,7 +17,7 @@ User-facing text (README, logs, UI strings, comments) is in **Spanish**.
 - **Languages:** Dockerfile (multi-stage, Ubuntu 24.04, RetroArch 1.18), Bash, EmulationStation XML config,
   RetroArch `.cfg`, one PowerShell script. No Node/Python, so there is no package manager or lockfile.
 - **Build:** `docker compose build` (or `docker compose up -d --build`)
-- **Run (Linux + X11):** `xhost +local:docker && docker compose up -d --build`
+- **Run (Linux + X11):** `docker compose up -d --build` (X auth via the session cookie; `xhost +local:docker` is a fallback)
 - **Logs / shell:** `docker compose logs -f` · `docker compose exec emulationstation bash`
 - **Test / lint / typecheck:** none configured (no CI, no shellcheck, no tests). Verify by building
   and checking the `>> ROMs detectadas:` table in the logs. See [recipes](recipes.md#verify-a-change).

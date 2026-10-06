@@ -7,7 +7,36 @@ ES_USER="${ES_USER:-es}"
 ES_HOME="${ES_HOME:-/home/es}"
 DEFAULTS=/etc/emulationstation/defaults
 
-: "${DISPLAY:?falta DISPLAY: monta /tmp/.X11-unix y pasa DISPLAY (p. ej. :0); en el host ejecuta antes xhost +local:docker}"
+: "${DISPLAY:?falta DISPLAY: monta /tmp/.X11-unix y pasa DISPLAY (p. ej. :0)}"
+
+# Carpeta de ejecución propia (SDL y Mesa avisan si XDG_RUNTIME_DIR no existe)
+ES_RUNTIME_DIR=/tmp/runtime-es
+XAUTH_DEST="${ES_HOME}/.Xauthority"
+
+# Copia la cookie de X de la sesión del host (carpeta XDG_RUNTIME_DIR montada en
+# /run/user/host) para no depender de "xhost". La cookie cambia en cada inicio
+# de sesión, así que se vuelve a copiar antes de cada arranque de ES.
+copiar_cookie_x() {
+    local src="${XAUTH_FILE:-}"
+    if [[ -z "${src}" ]]; then
+        # GNOME Wayland (Xwayland), GNOME X11 y KDE, la más reciente
+        src="$(ls -t /run/user/host/.mutter-Xwaylandauth.* /run/user/host/gdm/Xauthority \
+            /run/user/host/xauth_* 2>/dev/null | head -n1 || true)"
+    fi
+    rm -f "${XAUTH_DEST}"
+    if [[ -z "${src}" || ! -r "${src}" ]]; then
+        [[ -n "${AVISO_COOKIE_X:-}" ]] \
+            || echo ">> AVISO: no se encontró la cookie de X en /run/user/host; monta XDG_RUNTIME_DIR (o indica XAUTH_FILE) o ejecuta en el host: xhost +local:docker"
+        AVISO_COOKIE_X=1
+        return 0
+    fi
+    # Familia "ffff" (comodín): la cookie vale sea cual sea el nombre del equipo
+    touch "${XAUTH_DEST}"
+    xauth -i -f "${src}" nlist | sed -e 's/^..../ffff/' | xauth -q -f "${XAUTH_DEST}" nmerge - \
+        || echo ">> AVISO: no se pudo copiar la cookie de X desde ${src}"
+    chown "${ES_USER}:${ES_USER}" "${XAUTH_DEST}"
+    chmod 600 "${XAUTH_DEST}"
+}
 
 # Permite alinear UID/GID con el usuario del host (evita problemas de permisos en volúmenes)
 if [[ -n "${PUID:-}" && "${PUID}" != "$(id -u "${ES_USER}")" ]]; then
@@ -72,6 +101,9 @@ find "${ES_HOME}" \( ! -user "${ES_USER}" -o ! -group "${ES_USER}" \) \
     -exec chown -h "${ES_USER}:${ES_USER}" {} +
 chown "${ES_USER}:${ES_USER}" /roms /roms/* 2>/dev/null || true
 
+install -d -m 700 -o "${ES_USER}" -g "${ES_USER}" "${ES_RUNTIME_DIR}"
+ES_ENV=(env HOME="${ES_HOME}" XDG_RUNTIME_DIR="${ES_RUNTIME_DIR}" XAUTHORITY="${XAUTH_DEST}")
+
 if [[ "${1:-}" == "emulationstation" ]]; then
     shift
     # Al arrancar el equipo el contenedor puede empezar antes que el escritorio:
@@ -88,11 +120,13 @@ if [[ "${1:-}" == "emulationstation" ]]; then
         # Resumen de ROMs en los logs (docker compose logs) y ayuda de
         # Herramientas con el recuento actual, en un solo recorrido
         echo ">> ROMs detectadas:"
-        gosu "${ES_USER}" env HOME="${ES_HOME}" es-rom-summary --gamelist "${TOOLS_GAMELIST}" | sed 's/^/   /'
-        gosu "${ES_USER}" env HOME="${ES_HOME}" emulationstation --no-splash "$@" || true
+        gosu "${ES_USER}" "${ES_ENV[@]}" es-rom-summary --gamelist "${TOOLS_GAMELIST}" | sed 's/^/   /'
+        copiar_cookie_x
+        gosu "${ES_USER}" "${ES_ENV[@]}" emulationstation --no-splash "$@" || true
         [[ "${ES_RESTART:-true}" == "true" ]] || break
         sleep 1
     done
 else
-    exec gosu "${ES_USER}" env HOME="${ES_HOME}" "$@"
+    copiar_cookie_x
+    exec gosu "${ES_USER}" "${ES_ENV[@]}" "$@"
 fi
