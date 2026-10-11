@@ -79,14 +79,16 @@ Para comprobar que corre la versión actual, mira los logs del contenedor en Por
 
 ## Uso rápido (Linux + X11)
 
-Para abrirlo desde el escritorio de jfubuntu, ejecuta una vez desde la carpeta del repositorio:
+Para abrirlo desde el escritorio de jfubuntu (con el stack ya desplegado en Portainer), ejecuta una vez
+en una terminal del escritorio:
 
 ```bash
-bash scripts/instalar-acceso-directo.sh
+curl -fsSL https://raw.githubusercontent.com/belta1/emulationstation/main/scripts/instalar-acceso-directo.sh | bash
 ```
 
-Esto crea **EmulationStation** en el menú de aplicaciones. El acceso directo abre una terminal,
-reconstruye la imagen si hace falta y arranca el contenedor en la pantalla del escritorio.
+Esto crea **EmulationStation** en el menú de aplicaciones. El acceso directo reinicia el contenedor
+`emulationstation` (lo que también recoge la cookie de X de la sesión actual) y el juego se abre en
+pantalla completa. Tu usuario debe estar en el grupo `docker`.
 
 ```bash
 git clone https://github.com/belta1/emulationstation.git && cd emulationstation

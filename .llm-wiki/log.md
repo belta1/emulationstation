@@ -5,6 +5,8 @@ fixed prefix so the log is greppable: `grep "^## \[" log.md | tail -5`.
 
 Format: `## [YYYY-MM-DD] <init|update|lint> | <short summary>`
 
+## [2026-10-11] update | Desktop launcher now restarts the Portainer container (no Compose, no clone); lanzar-emulationstation.sh removed
+
 ## [2026-10-11] update | Add desktop launcher for EmulationStation (Docker access check, terminal stays open on error, .gitattributes forces LF on *.sh)
 
 ## [2026-09-27] init | Docker packaging repo (Dockerfile/Bash/XML, no Node/Python); created index, architecture, conventions, glossary, recipes + 6 modules (image-build, entrypoint, systems, herramientas, input, deploy)

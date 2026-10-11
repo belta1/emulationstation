@@ -22,8 +22,11 @@ host ROM folder and Portainer.
 
 ## How it works
 
-- Desktop launch: `scripts/instalar-acceso-directo.sh` creates a host-specific `.desktop` entry that
-  calls `scripts/lanzar-emulationstation.sh`; the latter resolves the repository path and runs Compose.
+- Desktop launch: `scripts/instalar-acceso-directo.sh` (run once on the host, also via `curl | bash`
+  from raw GitHub, so no local clone is needed) writes `~/.local/bin/lanzar-emulationstation` and a
+  `.desktop` entry. The launcher only does `docker restart emulationstation` (the Portainer-managed
+  container; running Compose from a clone would create a clashing second project). Restarting also
+  re-copies the X cookie, which changes on every login. Errors go to `notify-send`.
 
 - Env: `ROMS_DIR`, `DISPLAY` (default `:0`), `XDG_RUNTIME_DIR` (default `/run/user/1000`, for the
   PulseAudio socket and X cookie), `XAUTH_FILE` (optional cookie path inside the container), `PUID`, `PGID` (via `.env` or the Portainer env). `ROMS_HOST_DIR` is set from
