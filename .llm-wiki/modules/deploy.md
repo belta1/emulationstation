@@ -22,6 +22,9 @@ host ROM folder and Portainer.
 
 ## How it works
 
+- Desktop launch: `scripts/instalar-acceso-directo.sh` creates a host-specific `.desktop` entry that
+  calls `scripts/lanzar-emulationstation.sh`; the latter resolves the repository path and runs Compose.
+
 - Env: `ROMS_DIR`, `DISPLAY` (default `:0`), `XDG_RUNTIME_DIR` (default `/run/user/1000`, for the
   PulseAudio socket and X cookie), `XAUTH_FILE` (optional cookie path inside the container), `PUID`, `PGID` (via `.env` or the Portainer env). `ROMS_HOST_DIR` is set from
   `ROMS_DIR` for display only.

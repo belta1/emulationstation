@@ -79,6 +79,15 @@ Para comprobar que corre la versión actual, mira los logs del contenedor en Por
 
 ## Uso rápido (Linux + X11)
 
+Para abrirlo desde el escritorio de jfubuntu, ejecuta una vez desde la carpeta del repositorio:
+
+```bash
+bash scripts/instalar-acceso-directo.sh
+```
+
+Esto crea **EmulationStation** en el menú de aplicaciones. El acceso directo abre una terminal,
+reconstruye la imagen si hace falta y arranca el contenedor en la pantalla del escritorio.
+
 ```bash
 git clone https://github.com/belta1/emulationstation.git && cd emulationstation
 docker compose up -d --build              # usa la cookie de X de tu sesión (sin xhost)
